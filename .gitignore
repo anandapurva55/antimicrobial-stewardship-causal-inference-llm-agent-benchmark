@@ -1,0 +1,16 @@
+# Environment variables -- never commit API keys
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and plots generated during notebook runs
+*.png
+logs/
