@@ -1,0 +1,19 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "pinned",
+ "trial": 3,
+ "seed": 3,
+ "temperature": 0.7,
+ "started": "2026-11-21T03:53:37",
+ "attempts": 5,
+ "executed_ok": true,
+ "errors": [
+  "KeyError: 'se(log(HR))'",
+  "AttributeError: 'list' object has no attribute 'p_values'",
+  "                                                                ^",
+  "ValueError: method must be one of: 'newton', 'nm', 'bfgs', 'lbfgs', 'powell', 'cg', 'ncg', 'basinhopping', 'minimize'"
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T04:56:17"
+}

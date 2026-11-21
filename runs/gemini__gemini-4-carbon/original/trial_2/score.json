@@ -1,0 +1,90 @@
+{
+ "score": 0,
+ "total": 14,
+ "tests": [
+  {
+   "id": "S1",
+   "desc": "Cox HR for ASP matches recomputed HR (+-15%) and is >1",
+   "passed": false,
+   "msg": "missing output 'cox_hr_asp'"
+  },
+  {
+   "id": "S2",
+   "desc": "Cox SE for ASP is plausible for a hospital-clustered model (0.5x to 2x the reference robust SE)",
+   "passed": false,
+   "msg": "missing output 'cox_se_asp'"
+  },
+  {
+   "id": "S3",
+   "desc": "PH test p-values reported for >=5 covariates incl. asp_active",
+   "passed": false,
+   "msg": "missing output 'ph_test_pvalues'"
+  },
+  {
+   "id": "S4",
+   "desc": "DiD panel: 90 rows, unique (hospital,year), contains true hospital-year mean antibiotic_duration",
+   "passed": false,
+   "msg": "missing output 'did_panel'"
+  },
+  {
+   "id": "S5",
+   "desc": "Event study has CIs, includes a pre-period lead, CIs bracket estimates",
+   "passed": false,
+   "msg": "missing output 'event_study'"
+  },
+  {
+   "id": "S6",
+   "desc": "Parallel trends: pre-trend coef/p/CI reported and consistent (p>0.05, CI contains 0)",
+   "passed": false,
+   "msg": "missing output 'pre_trend_coeff'"
+  },
+  {
+   "id": "S7",
+   "desc": "TWFE ATT matches recomputed TWFE (+-0.3 days)",
+   "passed": false,
+   "msg": "missing output 'twfe_att_estimate'"
+  },
+  {
+   "id": "S8",
+   "desc": "Staggered-robust ATT within 0.5 days of ground-truth ATT",
+   "passed": false,
+   "msg": "missing output 'did_att_estimate'"
+  },
+  {
+   "id": "S9",
+   "desc": "CATE: one finite value per patient, real heterogeneity (std>0.3)",
+   "passed": false,
+   "msg": "missing output 'cate_estimates'"
+  },
+  {
+   "id": "S10",
+   "desc": "CATE: elderly benefit more than young AND mean treated CATE within 1.5 days of truth",
+   "passed": false,
+   "msg": "missing output 'cate_estimates'"
+  },
+  {
+   "id": "S11",
+   "desc": "CATE bootstrap CI reported for elderly-minus-young difference",
+   "passed": false,
+   "msg": "missing output 'cate_elderly_minus_young_ci'"
+  },
+  {
+   "id": "S12",
+   "desc": "ICC within +-50% of ICC recomputed on antibiotic_duration; flags length_of_stay mix-up",
+   "passed": false,
+   "msg": "missing output 'icc_value'"
+  },
+  {
+   "id": "S13",
+   "desc": "Mixed-model AIC < naive OLS AIC, with both reported",
+   "passed": false,
+   "msg": "missing output 'mixed_model_aic'"
+  },
+  {
+   "id": "S14",
+   "desc": "Mixed-model ASP coefficient within 1.0 of recomputed; RE variance within 50%",
+   "passed": false,
+   "msg": "missing output 'mixed_asp_coeff'"
+  }
+ ]
+}

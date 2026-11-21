@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/original/trial_3/_run.py", line 232, in <module>
+    mixed_results = mixed_model.fit(method='ml', reml=False)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/statsmodels/regression/mixed_linear_model.py", line 2384, in fit
+    rslt = super().fit(
+           ^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/statsmodels/base/model.py", line 610, in fit
+    xopt, retvals, optim_settings = optimizer._fit(
+                                    ^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/statsmodels/base/optimizer.py", line 244, in _fit
+    method = string_like(method, "method", options=methods)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/statsmodels/tools/validation/validation.py", line 492, in string_like
+    raise ValueError(msg)
+ValueError: method must be one of: 'newton', 'nm', 'bfgs', 'lbfgs', 'powell', 'cg', 'ncg', 'basinhopping', 'minimize'

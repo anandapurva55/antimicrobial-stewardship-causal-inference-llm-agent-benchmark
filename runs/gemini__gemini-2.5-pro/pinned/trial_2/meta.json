@@ -1,0 +1,19 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "pinned",
+ "trial": 2,
+ "seed": 2,
+ "temperature": 0.7,
+ "started": "2026-11-21T03:49:21",
+ "attempts": 5,
+ "executed_ok": true,
+ "errors": [
+  "TypeError: list indices must be integers or slices, not str",
+  "ValueError: exog does not have full column rank. If you wish to proceed with model estimation irrespective of the numerical accuracy of coefficient estimates, you can set check_rank=False.",
+  "Set drop_absorbed=True to automatically drop absorbed variables.",
+  "ValueError: method must be one of: 'newton', 'nm', 'bfgs', 'lbfgs', 'powell', 'cg', 'ncg', 'basinhopping', 'minimize'"
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T03:53:37"
+}

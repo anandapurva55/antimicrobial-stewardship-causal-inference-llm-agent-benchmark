@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/pinned/trial_4/_run.py", line 40, in <module>
+    ph_test_pvalues = {covariate: results.p_value for covariate, results in ph_test_results.iterrows()}
+                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'iterrows'

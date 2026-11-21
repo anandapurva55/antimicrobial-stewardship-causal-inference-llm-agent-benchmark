@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-4-argon/original/trial_4/_run.py", line 182, in <module>
+    random_effect_variance = float(np.asarray(mixed_mod.cov_re).iloc[0, 0] if hasattr(mixed_mod.cov_re, 'iloc') else np.asarray(mixed_mod.cov_re)[0, 0])
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'numpy.ndarray' object has no attribute 'iloc'

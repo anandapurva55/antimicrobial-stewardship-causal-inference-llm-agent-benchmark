@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/pinned/trial_5/_run.py", line 50, in <module>
+    p_value = assumption_results[i]['p'].iloc[0]
+              ~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range

@@ -1,0 +1,36 @@
+in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7088, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7096, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'hospital_id'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-3.8-flash/original/trial_1/_run.py", line 34, in <module>
+    p_test = proportional_hazard_test(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/lifelines/statistics.py", line 918, in proportional_hazard_test
+    scaled_resids = fitted_cox_model.compute_residuals(training_df, kind="scaled_schoenfeld")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/lifelines/fitters/__init__.py", line 1336, in compute_residuals
+    X, Ts, E, weights, _, shuffled_original_index, _ = self._preprocess_dataframe(training_dataframe)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/lifelines/fitters/coxph_fitter.py", line 1323, in _preprocess_dataframe
+    _clusters = df.pop(self.cluster_col).values if self.cluster_col else None
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/frame.py", line 5841, in pop
+    return super().pop(item=item)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/generic.py", line 950, in pop
+    result = self[item]
+             ~~~~^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/frame.py", line 4113, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3819, in get_loc
+    raise KeyError(key) from err
+KeyError: 'hospital_id'

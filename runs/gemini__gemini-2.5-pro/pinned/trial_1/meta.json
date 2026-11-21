@@ -1,0 +1,19 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "pinned",
+ "trial": 1,
+ "seed": 1,
+ "temperature": 0.7,
+ "started": "2026-11-21T03:46:09",
+ "attempts": 5,
+ "executed_ok": true,
+ "errors": [
+  "AttributeError: 'list' object has no attribute 'iterrows'",
+  "NotImplementedError: Can only union MultiIndex with MultiIndex or Index of tuples, try mi.to_flat_index().union(other) instead.",
+  "formulaic.errors.FactorEvaluationError: Unable to evaluate factor `t_`. [NameError: `t_` is not present in the dataset or evaluation context.]",
+  "ValueError: method must be one of: 'newton', 'nm', 'bfgs', 'lbfgs', 'powell', 'cg', 'ncg', 'basinhopping', 'minimize'"
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T03:49:21"
+}

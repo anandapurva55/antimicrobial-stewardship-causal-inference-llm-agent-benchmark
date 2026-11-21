@@ -1,0 +1,20 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "pinned",
+ "trial": 7,
+ "seed": 7,
+ "temperature": 0.7,
+ "started": "2026-11-21T03:52:20",
+ "attempts": 5,
+ "executed_ok": false,
+ "errors": [
+  "ValueError: could not convert string to float: 'general'",
+  "KeyError: 'se(log(HR))'",
+  "IndexError: list index out of range",
+  "                                                                              ^^^^",
+  "ValueError: method must be one of: 'newton', 'nm', 'bfgs', 'lbfgs', 'powell', 'cg', 'ncg', 'basinhopping', 'minimize'"
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T05:01:19"
+}

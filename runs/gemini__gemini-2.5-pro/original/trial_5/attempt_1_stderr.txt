@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/original/trial_5/_run.py", line 36, in <module>
+    cph = CoxPHFitter(cluster_col='hospital_id')
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/lifelines/fitters/coxph_fitter.py", line 147, in __init__
+    super(CoxPHFitter, self).__init__(**kwargs)
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/lifelines/fitters/__init__.py", line 1263, in __init__
+    super(RegressionFitter, self).__init__(*args, **kwargs)
+TypeError: BaseFitter.__init__() got an unexpected keyword argument 'cluster_col'

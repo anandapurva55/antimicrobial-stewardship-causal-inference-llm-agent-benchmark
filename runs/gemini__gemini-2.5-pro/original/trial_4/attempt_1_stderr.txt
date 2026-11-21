@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/original/trial_4/_run.py", line 49, in <module>
+    ph_test_pvalues = {covar.replace("'", ""): p_val for covar, p_val in ph_test_results.p.items()}
+                                                                         ^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'p'

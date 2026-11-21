@@ -1,0 +1,29 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/pinned/trial_1/_run.py", line 66, in <module>
+    did_panel_es = pd.concat([did_panel.set_index(['hospital_id', 'year']), event_dummies], axis=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/reshape/concat.py", line 395, in concat
+    return op.get_result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/reshape/concat.py", line 671, in get_result
+    for ax, new_labels in enumerate(self.new_axes):
+                                    ^^^^^^^^^^^^^
+  File "pandas/_libs/properties.pyx", line 36, in pandas._libs.properties.CachedProperty.__get__
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/reshape/concat.py", line 703, in new_axes
+    self._get_concat_axis if i == self.bm_axis else self._get_comb_axis(i)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/reshape/concat.py", line 709, in _get_comb_axis
+    return get_objs_combined_axis(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/indexes/api.py", line 103, in get_objs_combined_axis
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/indexes/api.py", line 156, in _get_combined_index
+    index = union_indexes(indexes, sort=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/indexes/api.py", line 312, in union_indexes
+    result = result.union(other, sort=None if sort else False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3338, in union
+    raise NotImplementedError(
+NotImplementedError: Can only union MultiIndex with MultiIndex or Index of tuples, try mi.to_flat_index().union(other) instead.

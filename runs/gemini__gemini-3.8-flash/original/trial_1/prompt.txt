@@ -1,0 +1,88 @@
+You are an expert data scientist specialising in clinical research and causal inference.
+
+CONTEXT:
+A consortium of 15 hospitals across five regions participated in a longitudinal observational
+study (2017-2022) of Antimicrobial Stewardship Programs (ASPs). ASPs were voluntarily adopted at
+different points (2020, 2021, or never). The DataFrame `df` is already loaded (one row per patient admission).
+
+Dataset shape : 11,830 rows x 22 columns
+Columns       : ['patient_id', 'hospital_id', 'hospital_size', 'region', 'ward', 'year', 'age', 'sex', 'age_group', 'comorbidity_score', 'immune_compromised', 'infection_type', 'severity_score', 'asp_adoption_year', 'asp_active', 'time_to_improvement', 'event_observed', 'antibiotic_duration', 'length_of_stay', 'readmission_30d', 'c_diff_infection', 'mortality']
+Dtypes        :
+patient_id               int64
+hospital_id              int64
+hospital_size           object
+region                  object
+ward                    object
+year                     int64
+age                      int64
+sex                     object
+age_group               object
+comorbidity_score        int64
+immune_compromised       int64
+infection_type          object
+severity_score           int64
+asp_adoption_year        int64
+asp_active               int64
+time_to_improvement    float64
+event_observed           int64
+antibiotic_duration    float64
+length_of_stay           int64
+readmission_30d          int64
+c_diff_infection         int64
+mortality                int64
+
+First 5 rows:
+   patient_id  hospital_id hospital_size region      ward  year  age sex age_group  comorbidity_score  immune_compromised infection_type  severity_score  asp_adoption_year  asp_active  time_to_improvement  event_observed  antibiotic_duration  length_of_stay  readmission_30d  c_diff_infection  mortality
+0           1            1         large  North       ICU  2017   50   M     40-65                  4                   0        urinary              58               2020           0                 17.6               1                  8.3               7                0                 0          0
+1           2            1         large  North  surgical  2017   35   M       <40                  1                   0    respiratory              43               2020           0                  0.4               0                 14.1               4                1                 0          0
+2           3            1         large  North       ICU  2017   71   F       65+                  3                   0    bloodstream              63               2020           0                 15.4               1                 15.3               7                0                 0          0
+3           4            1         large  North   general  2017   80   M       65+                  2                   0    respiratory              60               2020           0                 18.5               1                  7.5               5                0                 0          0
+4           5            1         large  North   general  2017   58   M     40-65                  2                   0          wound              53               2020           0                 10.6               0                 12.6               5                0                 0          0
+
+Unique hospitals: 15; ASP adoption years: [np.int64(2020), np.int64(2021), np.int64(9999)];
+Years: [np.int64(2017), np.int64(2018), np.int64(2019), np.int64(2020), np.int64(2021), np.int64(2022)]; censoring rate: 29.5%
+
+TASK: produce a rigorous causal analysis of ASP effectiveness. Address all four objectives.
+
+1. SURVIVAL ANALYSIS: Quantify how ASP affects time-to-clinical-improvement, accounting for
+   right-censored patients. Use Kaplan-Meier and a Cox PH model (SEs clustered by hospital_id).
+   Test the proportional hazards assumption.
+
+2. CAUSAL IMPACT (DiD): Estimate the causal impact of ASP on antibiotic_duration. Account for the
+   voluntary, staggered nature of adoption. Build a hospital-year panel, test parallel pre-trends,
+   run TWFE, and also run an estimator that is robust to staggered adoption. Produce an event study with CIs.
+
+3. TREATMENT HETEROGENEITY: Estimate individual-level CATE with a T- or X-Learner using gradient boosting
+   or random forests. Adjust for hospital and year, and bootstrap a CI for the elderly-vs-young difference.
+
+4. HIERARCHICAL MODELING: Fit a mixed-effects linear model with hospital as a random intercept.
+   Calculate and report the ICC. Compare AIC against naive OLS.
+
+CONSTRAINTS:
+- event_observed=0 means censored. Do NOT treat these as failures.
+- Validate parallel trends before reporting DiD estimates.
+- ICC = random_effect_variance / (random_effect_variance + residual_variance).
+- Available packages only: lifelines, linearmodels, statsmodels, sklearn, pandas, numpy, scipy.
+
+REQUIRED OUTPUT VARIABLES (define exactly these names; they are recomputed and checked against the data):
+- cox_hr_asp: float, hazard ratio of asp_active from a Cox PH model for time_to_improvement (event=event_observed)
+- cox_se_asp: float, standard error of the asp_active log-hazard coefficient, robust/clustered by hospital_id
+- ph_test_pvalues: dict {covariate_name: float p-value} from a Schoenfeld-residual proportional-hazards test
+- did_panel: DataFrame, exactly one row per hospital-year (15 hospitals x 6 years = 90 rows), with hospital_id, year and the mean primary-outcome per hospital-year
+- pre_trend_coeff: float, estimated pre-treatment (lead) coefficient from your event study / pre-trend test
+- pre_trend_pvalue: float, p-value for that pre-trend coefficient
+- pre_trend_ci: list [lo, hi], 95% CI of the pre-trend coefficient
+- event_study: DataFrame with columns event_time, coef, ci_low, ci_high (reference period event_time=-1 may be omitted); include pre-period leads where identifiable
+- twfe_att_estimate: float, ATT from a plain two-way-fixed-effects regression on the hospital-year panel
+- did_att_estimate: float, ATT (days) from an estimator robust to staggered adoption (e.g. Callaway-Sant'Anna / Sun-Abraham / stacked), using never-treated hospitals as controls
+- cate_estimates: numpy array, one individual treatment-effect estimate per patient (row order of df) from a T- or X-learner
+- cate_elderly_minus_young_ci: list [lo, hi], bootstrap 95% CI for mean CATE(age>=65) minus mean CATE(age<40)
+- icc_value: float, ICC of a hospital random-intercept model of the primary outcome
+- mixed_model_aic: float, AIC of the mixed model (ML fit)
+- naive_ols_aic: float, AIC of the same fixed effects without the random intercept
+- mixed_asp_coeff: float, asp_active coefficient from the mixed model
+- random_effect_variance: float, hospital random-intercept variance
+
+Return ONLY valid, executable Python code. No markdown, no explanations, no code fences.
+`df` and the imports pd, np, smf (statsmodels.formula.api), sm, lifelines classes (KaplanMeierFitter, CoxPHFitter),
+PanelOLS, sklearn ensembles are already available.

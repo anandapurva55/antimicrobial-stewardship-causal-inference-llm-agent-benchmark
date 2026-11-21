@@ -1,0 +1,20 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "pinned",
+ "trial": 0,
+ "seed": 0,
+ "temperature": 0.7,
+ "started": "2026-11-21T03:00:15",
+ "attempts": 5,
+ "executed_ok": false,
+ "errors": [
+  "KeyError: 'hospital_id'",
+  "AttributeError: 'list' object has no attribute 'p'",
+  "IndexError: list index out of range",
+  "IndexError: list index out of range",
+  "TypeError: 'StatisticalResult' object is not subscriptable"
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T03:04:43"
+}

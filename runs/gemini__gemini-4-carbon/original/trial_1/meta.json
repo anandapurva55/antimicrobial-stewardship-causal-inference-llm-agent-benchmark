@@ -1,0 +1,14 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-4-carbon",
+ "condition": "original",
+ "trial": 1,
+ "seed": 1,
+ "temperature": 0.7,
+ "started": "2026-11-21T14:53:07",
+ "attempts": 1,
+ "executed_ok": true,
+ "errors": [],
+ "model_reported": "gemini-4-carbon",
+ "finished": "2026-11-21T15:00:58"
+}

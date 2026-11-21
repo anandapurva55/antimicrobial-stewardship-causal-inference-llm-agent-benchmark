@@ -1,0 +1,19 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "original",
+ "trial": 6,
+ "seed": 6,
+ "temperature": 0.7,
+ "started": "2026-11-21T03:29:10",
+ "attempts": 5,
+ "executed_ok": true,
+ "errors": [
+  "IndexError: list index out of range",
+  "TypeError: 'StatisticalResult' object is not subscriptable",
+  "formulaic.errors.FactorEvaluationError: Unable to evaluate factor `t_`. [NameError: `t_` is not present in the dataset or evaluation context.]",
+  "Set drop_absorbed=True to automatically drop absorbed variables."
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T03:33:10"
+}

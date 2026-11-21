@@ -1,0 +1,14 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-4-hydrogen",
+ "condition": "original",
+ "trial": 4,
+ "seed": 4,
+ "temperature": 0.7,
+ "started": "2026-11-21T14:56:27",
+ "attempts": 1,
+ "executed_ok": true,
+ "errors": [],
+ "model_reported": "gemini-4-hydrogen",
+ "finished": "2026-11-21T15:02:42"
+}

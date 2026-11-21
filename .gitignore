@@ -1,16 +1,20 @@
 # Environment variables -- never commit API keys
 .env
 
-# Python cache
+# Python
 __pycache__/
 *.pyc
-*.pyo
 .ipynb_checkpoints/
+.venv/
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# Logs and plots generated during notebook runs
+# Generated plots, pickles, scratch
 *.png
+*.pkl
 logs/
+
+# README figures are tracked
+!docs/*.png

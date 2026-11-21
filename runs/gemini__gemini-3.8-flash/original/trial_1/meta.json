@@ -1,0 +1,17 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-3.8-flash",
+ "condition": "original",
+ "trial": 1,
+ "seed": 1,
+ "temperature": 0.7,
+ "started": "2026-11-21T14:50:51",
+ "attempts": 3,
+ "executed_ok": true,
+ "errors": [
+  "KeyError: 'hospital_id'",
+  "                                 ^"
+ ],
+ "model_reported": "gemini-3.8-flash",
+ "finished": "2026-11-21T14:56:10"
+}

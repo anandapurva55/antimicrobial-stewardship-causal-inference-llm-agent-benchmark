@@ -1,203 +1,319 @@
-# Causal Evaluation of Antimicrobial Stewardship Programs Across a Hospital Network
+# Causal Inference Benchmark for LLM Agents on Antimicrobial Stewardship Programs: Survival Analysis with Kaplan-Meier and Cox Proportional Hazards, Staggered Difference-in-Differences with TWFE and Callaway-Sant'Anna, Heterogeneous Treatment Effects with T- and X-Learners on Gradient Boosting, Linear Mixed-Effects Models, a Seeded Synthetic Data Generator with Known Ground Truth, Behavioural Tests, and a Six-Model Gemini Comparison through the google-genai SDK, in Python
 
-A long-horizon benchmark task evaluating Gemini 2.5 Pro as an agentic data scientist
-on expert-level causal inference applied to a real-world clinical scenario.
+[![Python](docs/images/badges/python.svg)](requirements.txt)
+![pandas](docs/images/badges/pandas.svg)
+![NumPy](docs/images/badges/numpy.svg)
+![SciPy](docs/images/badges/scipy.svg)
+![statsmodels](docs/images/badges/statsmodels.svg)
+![lifelines](docs/images/badges/lifelines.svg)
+![linearmodels](docs/images/badges/linearmodels.svg)
+![scikit-learn](docs/images/badges/scikit-learn.svg)
+![matplotlib](docs/images/badges/matplotlib.svg)
+![Gemini API](docs/images/badges/gemini.svg)
+![Jupyter](docs/images/badges/jupyter.svg)
+![Tests](docs/images/badges/tests.svg)
+![LLMs compared](docs/images/badges/models.svg)
+![Synthetic data](docs/images/badges/synthetic.svg)
+![License](docs/images/badges/license.svg)
 
----
+This repository measures how well a large language model (LLM) can act as a data scientist on a causal inference problem. The problem is to estimate the effect of an Antimicrobial Stewardship Program (ASP) on antibiotic use across 15 hospitals that adopted the program in different years. The LLM receives a description of the data and a task, writes Python code, runs it, reads its own errors, and fixes the code. Its final results are then scored by 14 automated tests.
 
-## Summary
+The data are synthetic, so the true effects are known and every estimate can be checked against the truth. An expert reference solution, called the golden solution, passes all 14 tests. Six Gemini models were evaluated with the same protocol.
 
-| Field | Detail |
-|---|---|
-| Task Name | Multi-Hospital ASP Causal Study |
-| Scenario | 15 hospitals, 4-year observational study (2019-2022), staggered voluntary ASP adoption, 11,629 patient admissions across 5 regions |
-| Methods Required | Survival Analysis, DiD Estimation, Heterogeneous Treatment Effects, Mixed Effects Modeling |
-| Agent Failure | Mixed Effects Modeling: Gemini used wrong outcome variable, producing ICC=0.009 vs true ICC=0.22 |
-| Agent Result | 17/18 unit tests passed |
+| 6 | 14 | 3 of 6 | -2.96 | -2.58 | -3.18 |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| Gemini models compared | Automated tests | Models with a perfect 14/14 mean | Callaway-Sant'Anna ATT in days (golden solution) | Plain TWFE estimate in days (biased) | True ATT in days (from the generator) |
 
----
+![Leaderboard of six Gemini models, 5 trials each](docs/model_leaderboard.png)
 
-## Repository Structure
+## Table of contents
 
-```
-asp-causal-inference/
-├── golden_notebook.ipynb      # Expert solution, passes all 18 unit tests
-├── unit_test_notebook.ipynb   # Standalone unit test validation notebook
-├── agent_notebook.ipynb       # Gemini agent attempt, demonstrates failure
-├── asp_study_data.csv         # Synthetic dataset (11,629 patients x 22 columns)
-├── requirements.txt           # All Python dependencies
-├── .env.example               # Template for API key setup
-└── .gitignore
-```
+1. [Problem and significance](#problem-and-significance)
+2. [Quickstart](#quickstart)
+3. [Dataset and ground truth](#dataset-and-ground-truth)
+4. [Methods and algorithms](#methods-and-algorithms)
+5. [Golden solution results](#golden-solution-results)
+6. [The 14 tests](#the-14-tests)
+7. [Agent evaluation protocol](#agent-evaluation-protocol)
+8. [Model comparison](#model-comparison)
+9. [Effect of stating the primary outcome](#effect-of-stating-the-primary-outcome)
+10. [Technology stack](#technology-stack)
+11. [Repository layout](#repository-layout)
+12. [Reproducing the results](#reproducing-the-results)
+13. [Limitations](#limitations)
+14. [Security notes](#security-notes)
+15. [License](#license)
 
----
+## Problem and significance
 
-## Problem Description and Significance
+Antimicrobial resistance is classified by the World Health Organization as one of the ten greatest global public health threats. An Antimicrobial Stewardship Program is a hospital policy that controls how antibiotics are prescribed: it restricts broad-spectrum drugs, shortens treatment courses and reduces infections such as *Clostridioides difficile*. Hospitals choose whether and when to adopt a program, and better-resourced hospitals tend to adopt earlier and to have better outcomes for other reasons. A simple comparison of hospitals with and without a program therefore mixes the effect of the program with the effect of the hospital.
 
-Antimicrobial resistance (AMR) causes an estimated 700,000 deaths annually and is
-classified by the WHO as one of the ten greatest global health threats. Antimicrobial
-Stewardship Programs (ASPs) are hospital-led governance frameworks that enforce
-evidence-based antibiotic prescribing, restricting broad-spectrum use, shortening
-treatment durations, and reducing C. difficile infections. Despite their importance,
-rigorous causal evaluation of ASPs is rare because adoption is voluntary and staggered,
-and better-resourced hospitals adopt earlier while having better baseline outcomes
-regardless of ASP, creating confounding that naive comparisons cannot handle.
+A correct analysis needs four methods that depend on each other:
 
-This study frames ASP evaluation as a long-horizon causal inference problem over a
-four-year multi-site study (2019-2022) across 15 hospitals and 11,629 patient admissions.
-The expert solution requires four interlinked methodologies:
+1. **Survival analysis**, because some patients have not yet improved when follow-up ends (right-censored patients) and cannot be treated as failures.
+2. **Difference-in-differences**, because adoption is staggered across years and a before-and-after comparison against hospitals that never adopted is needed.
+3. **Heterogeneous treatment effect estimation**, because the average effect can hide patient groups that benefit more.
+4. **Mixed-effects modelling**, because patients in the same hospital are not independent of each other.
 
-1. **Survival Analysis:** Kaplan-Meier estimators and Cox Proportional Hazards
-   correctly handle the 32.8% of patients who were right-censored at study end.
-2. **Difference-in-Differences:** TWFE regression with mandatory parallel
-   pre-trends validation controls for hospital confounders and secular trends.
-3. **Heterogeneous Treatment Effects:** T-Learner and X-Learner meta-learners reveal that
-   elderly patients gain 32% more benefit from ASP than younger patients.
-4. **Mixed Effects Modeling:** A hospital random intercept quantifies
-   ICC = 0.22, proving 22% of variance in antibiotic duration is attributable to
-   between-hospital differences.
+A task that needs all four, with one consistent primary outcome, tests whether an LLM can plan and carry out a multi-step analysis, not only run one method.
 
-Completing this correctly requires 4-6 hours for a senior data scientist with expertise
-in causal inference and biostatistics. It cannot be reduced to a standard ML workflow.
-
----
-
-## Agent Performance and Failure Analysis
-
-Gemini 2.5 Pro was evaluated using a multi-turn agentic loop (up to 5 attempts), where
-the agent observed its own execution errors and corrected them iteratively. The agent
-required 3 attempts to produce executing code, autonomously fixing two technical bugs:
-a special-character column naming issue (`age_group_<40` causing a patsy formula error)
-and an incorrect propensity model type in the X-Learner (regressor instead of classifier).
-
-**Unit test results: 17 of 18 passed.**
-
-Gemini passed all tests for Survival Analysis (A1-A6), Difference-in-Differences
-(B1-B5), and Heterogeneous Treatment Effects (C1-C5). The Cox model correctly handled
-censoring (HR=1.86), parallel trends were verified (p=0.95), TWFE ATT was accurately
-estimated at -2.87 days, and individual-level CATE was produced via the X-Learner
-(std=1.39), correctly showing elderly patients benefit more from ASP.
-
-**The single failure: D1, ICC = 0.0091, expected range 0.02-0.50.**
-
-Gemini computed the ICC using `length_of_stay` as the outcome for the mixed-effects
-model, while the entire analysis centres on `antibiotic_duration`. The `length_of_stay`
-variable has weak hospital-level clustering (ICC ~ 0.009) because it is driven by patient
-acuity rather than prescribing practices. The true ICC for `antibiotic_duration` is 0.22,
-reflecting the direct influence of hospital prescribing culture on treatment duration.
-
-This is not a technical bug. It is a failure of cross-analysis coherence. A human
-expert maintains a consistent primary outcome variable across all analytical sections.
-Gemini lost track of the research question when transitioning to hierarchical modeling,
-defaulting to `length_of_stay` despite the entire preceding analysis being anchored to
-`antibiotic_duration`.
-
----
-
-## How the Agent Could Be Improved
-
-**Short-term: Outcome consistency enforcement**
-A structured reasoning step requiring the agent to confirm the primary outcome variable
-before each analytical section would prevent this failure. Prompt scaffolding that pins
-the outcome variable globally and requires justification for any deviation would suffice.
-
-**Medium-term: Causal inference fine-tuning**
-The failure is in cross-section coherence, not individual methodology. Fine-tuning on
-multi-step causal workflows where outcome variable consistency is evaluated across all
-sections would address this directly.
-
-**Long-term: Structured intermediate validation**
-Agents could be trained to perform explicit sanity checks between analytical phases:
-does the outcome in the mixed effects model match the outcome used in the DiD?
-This mirrors iterative verification that distinguishes senior data scientists.
-
----
-
-## How to Run
-
-### Prerequisites
-
-- Python 3.9+
-- A Gemini API key (only needed for `agent_notebook.ipynb`)
-  Get one free at [aistudio.google.com](https://aistudio.google.com)
-
-### Local Setup
+## Quickstart
 
 ```bash
-git clone https://github.com/anandapurva55/asp-causal-inference
-cd asp-causal-inference
+git clone https://github.com/anandapurva55/antimicrobial-stewardship-causal-inference-llm-agent-benchmark
+cd antimicrobial-stewardship-causal-inference-llm-agent-benchmark
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 
-pip install -r requirements.txt
-
-# Set up API key
-cp .env.example .env
-# Edit .env and add your key: GEMINI_API_KEY=your_key_here
-
-jupyter notebook
+.venv/bin/python golden_solution.py                  # writes golden_results.json
+.venv/bin/python asp_tests.py golden_results.json    # prints 14 tests and the score
 ```
 
-### Running golden_notebook.ipynb (Expert Solution)
+To run an LLM agent, copy `.env.example` to `.env`, set `GEMINI_API_KEY`, and run `run_agent.py` (see [Reproducing the results](#reproducing-the-results)).
 
-1. Open `golden_notebook.ipynb` in Jupyter or Colab
-2. Upload `asp_study_data.csv` to the session if using Colab
-3. Run All. Results are saved to `golden_results.pkl` at the end.
+## Dataset and ground truth
 
-### Running unit_test_notebook.ipynb (Validation)
+`generate_data.py` creates `asp_study_data.csv` (11,830 patient admissions, 22 columns) and `ground_truth.json` from a fixed random seed (42), so the data can be regenerated exactly.
 
-1. Run `golden_notebook.ipynb` or `agent_notebook.ipynb` to generate a pkl file
-2. Open `unit_test_notebook.ipynb`
-3. Set `PKL_FILE` to the correct filename (`golden_results.pkl` or `agent_results.pkl`)
-4. Run All.
+| Property | Value |
+|---|---|
+| Hospitals, regions, years | 15 hospitals in 5 regions, 2017 to 2022 |
+| Adoption | 5 hospitals adopt in 2020, 4 adopt in 2021, 6 never adopt. Larger hospitals adopt earlier |
+| Primary outcome | `antibiotic_duration`, in days |
+| True average effect of ASP on treated admissions | -3.18 days |
+| Effect over time | Depends on the adoption cohort and grows with time since adoption. The 2020 cohort has effects of -2, -3 and -4 days in the adoption year and the two years after. The 2021 cohort has -2.5 days in both of its post-adoption years |
+| Effect by age | 1.32 times larger for patients aged 65 and over |
+| Hospital variation | A hospital-level random intercept with a standard deviation of 1.8 days. The intraclass correlation (ICC) of `antibiotic_duration` is 0.231 |
+| A second outcome that does not cluster | `length_of_stay` has an ICC of 0.037, because it depends mostly on patient severity. It is included so that a model that picks the wrong outcome can be detected |
+| Survival outcome | `time_to_improvement` is log-normal. ASP shortens it (generating log hazard ratio 0.35) |
+| Censoring | 29.5% of patients are censored, by a 28-day follow-up limit or by independent loss to follow-up. Censoring does not depend on calendar year. It is lower under ASP (79% of treated patients reach improvement against 68% of untreated), because treated patients improve sooner |
 
-### Running agent_notebook.ipynb (Gemini Agent Demo)
+Columns: `patient_id`, `hospital_id`, `hospital_size`, `region`, `ward`, `year`, `age`, `sex`, `age_group`, `comorbidity_score`, `immune_compromised`, `infection_type`, `severity_score`, `asp_adoption_year` (9999 means never), `asp_active` (1 when the year is at or after the adoption year), `time_to_improvement`, `event_observed` (0 means censored), `antibiotic_duration`, `length_of_stay`, `readmission_30d`, `c_diff_infection`, `mortality`.
 
-**Local:**
+## Methods and algorithms
+
+The golden solution (`golden_solution.py`, also available as `golden_notebook.ipynb`) applies one method to each of the four objectives. All objectives that need an outcome use `antibiotic_duration`.
+
+### 1. Survival analysis
+
+* **Kaplan-Meier estimator** (lifelines) of the probability that a patient has not yet improved, separately for patients under ASP and not under ASP. Censored patients stay in the risk set until their censoring time.
+* **Cox proportional hazards model** (lifelines) of `time_to_improvement` with `asp_active` and patient covariates (age, severity, comorbidity score, immunocompromise, sex, infection type and ICU ward). The model is fitted by maximising the partial likelihood. The standard error uses the robust sandwich variance with observations grouped by `hospital_id`, so patients from the same hospital are not counted as independent.
+* **Proportional hazards check**: a test on the scaled Schoenfeld residuals (`proportional_hazard_test` with the rank time transform), which gives one p-value per covariate.
+
+### 2. Difference-in-differences
+
+* A **hospital-year panel** of mean `antibiotic_duration` (15 hospitals times 6 years, 90 rows).
+* **Two-way fixed effects (TWFE)** regression (linearmodels `PanelOLS`) with hospital and year effects and standard errors clustered by hospital. With staggered adoption and effects that change over time, TWFE compares already-treated hospitals with newly treated ones, so it can be biased. It is reported as a comparison.
+* **Callaway-Sant'Anna estimator**, the headline estimate. For each adoption cohort *g* and year *t*, it computes the change in mean outcome of the cohort from the year before adoption (*g* minus 1) to *t*, minus the same change in never-adopting hospitals. These cohort-year effects are averaged with the number of treated patients as weights, by years since adoption (the event study) and over all post-adoption years (the overall ATT).
+* **Hospital-cluster bootstrap**: 1,000 resamples of hospitals within each group give 95% confidence intervals.
+* **Pre-trend test**: the event study includes the pre-adoption years (up to four years before adoption). The parallel-trends check is the average of all pre-adoption coefficients, with its bootstrap confidence interval and p-value.
+
+### 3. Heterogeneous treatment effects
+
+* **T-learner**: two outcome models, one fitted on treated patients and one on untreated patients. The individual effect is the difference between their predictions.
+* **X-learner**: uses the two outcome models to impute individual effects for each group, fits models of those imputed effects, and combines them with weights from a **propensity model** (a classifier for treatment), clipped to the range 0.05 to 0.95.
+* Base models are scikit-learn `HistGradientBoostingRegressor` (150 iterations, depth 4, learning rate 0.06) and `HistGradientBoostingClassifier`. Covariates include patient characteristics, hospital indicators and year, because treatment varies by hospital and year.
+* A **patient-level bootstrap** (30 resamples) gives a confidence interval for the difference in mean effect between patients aged 65 and over and patients under 40.
+
+### 4. Mixed-effects modelling
+
+* A **linear mixed model** (statsmodels `MixedLM`) of `antibiotic_duration` with a random intercept for each hospital, fitted by restricted maximum likelihood (REML).
+* **Intraclass correlation**: ICC = hospital variance / (hospital variance + residual variance).
+* **Model comparison**: Akaike information criterion (AIC) of the mixed model, fitted by maximum likelihood, against an ordinary least squares model with the same fixed effects.
+
+## Golden solution results
+
+| Quantity | Golden solution | Reference |
+|---|---|---|
+| Cox hazard ratio for ASP | 1.89 (robust SE 0.0202, unclustered SE 0.0243) | |
+| TWFE estimate | -2.58 days | Biased |
+| Callaway-Sant'Anna ATT | -2.96 days (95% CI -3.32 to -2.58) | True value -3.18 |
+| Pre-trend (average of all leads) | -0.02 days (p = 0.83, 95% CI -0.18 to 0.16) | Smallest detectable effect about 0.25 days |
+| X-learner mean effect on treated patients | -3.00 days | True value -3.18 |
+| Age 65 and over minus under 40, effect difference | -0.83 days (95% CI -1.25 to -0.36) | True difference about -0.9 |
+| ICC of `antibiotic_duration` | 0.231 | |
+| AIC, mixed model against OLS | 58,724 against 61,446 | Lower is better |
+
+![Event study with true effects](docs/event_study.png)
+
+The event study shows flat pre-adoption coefficients, which supports the parallel-trends assumption, and post-adoption estimates that follow the true effects, including their growth with time since adoption. TWFE averages that growth away and underestimates the effect:
+
+![TWFE against Callaway-Sant'Anna against the truth](docs/att_comparison.png)
+
+| Survival curves | Estimated effect by age group |
+|---|---|
+| ![Kaplan-Meier curves](docs/km_curves.png) | ![X-learner effect by age group](docs/cate_by_age.png) |
+
+## The 14 tests
+
+`asp_tests.py` scores a results file. Each test runs on its own, so one failure does not stop the others, and the score is the number of passed tests. Tests recompute reference values from `asp_study_data.csv` or compare against `ground_truth.json`. They do not accept self-declared flags. Three dataset checks (P1 to P3) are printed but not scored.
+
+| ID | What is checked |
+|---|---|
+| S1 | The Cox hazard ratio is above 1 and within 15% of the recomputed value |
+| S2 | The Cox standard error for ASP is between 0.5 and 2 times the recomputed hospital-clustered value |
+| S3 | A dictionary of proportional-hazards p-values is reported, with `asp_active` and at least 5 covariates |
+| S4 | The hospital-year panel has 90 unique rows and contains the true hospital-year means of `antibiotic_duration` |
+| S5 | The event study has confidence intervals that contain the estimates and includes at least one pre-adoption coefficient |
+| S6 | The pre-trend coefficient, p-value and confidence interval are consistent, and the data show no violation (p above 0.05, interval contains 0) |
+| S7 | The TWFE estimate is within 0.3 days of the recomputed TWFE estimate |
+| S8 | The staggered-adoption estimate is within 0.5 days of the true ATT |
+| S9 | The individual-effect vector has one finite value per patient and a standard deviation above 0.3 |
+| S10 | Patients aged 65 and over have a more negative mean effect than patients under 40, and the mean effect on treated patients is within 1.5 days of the truth |
+| S11 | A confidence interval is reported for the difference in effect between older and younger patients |
+| S12 | The reported ICC is within 50% of the ICC recomputed on `antibiotic_duration`. The message names the case where the value matches the `length_of_stay` ICC |
+| S13 | The AIC of the mixed model is lower than the AIC of the model without random effects |
+| S14 | The mixed-model ASP coefficient is within 1 day of the recomputed value and the random-effect variance is within 50% |
+
+S2 checks that the reported standard error is plausible for a hospital-clustered Cox model. The exact value depends on the covariates, so S2 cannot prove that clustering was used. For that reason `summarize_runs.py` also reports, without scoring it, whether the final generated script passes `cluster_col` to the Cox fit.
+
+## Agent evaluation protocol
+
+1. **Prompt.** `asp_common.build_prompt` builds the prompt from the data: the dataset shape, column types, the first five rows and basic counts, the four objectives, the constraints, and the list of 17 required output variables with their meanings.
+2. **Prompt conditions.** In the `original` condition, the mixed-model objective does not name the outcome. In the `pinned` condition, the prompt states that `antibiotic_duration` is the primary outcome for the difference-in-differences, treatment-effect and mixed-model objectives.
+3. **Attempts.** The model writes Python code. The code runs in a separate process (`python -I`, 900-second limit). If it raises an error, the error text is sent back and the model writes corrected code. There are at most 5 attempts per trial.
+4. **Model settings.** The model name is fixed, and there is no fallback to another model. The temperature is 0.7, and the random seed equals the trial number. Transient API errors are retried up to 5 times with increasing waiting time. These retries are not counted as attempts.
+5. **Scoring.** The required outputs are saved as JSON and scored by `asp_tests.py`. A trial has *valid results* when the code ran and defined at least one required output. Trials without valid results score 0 and are included in all mean scores.
+6. **Stored evidence.** For every trial, `runs/<model>/<prompt>/trial_<k>/` contains the prompt, each attempt's code and error output, the model name returned by the API, the results and the per-test scores.
+
+## Model comparison
+
+Six Gemini models were evaluated on the `original` prompt with 5 trials each (trials 0 to 4), so every model has the same number of trials. The models are `gemini-2.5-pro`, `gemini-3.8-flash`, and four models named `gemini-4-argon`, `gemini-4-carbon`, `gemini-4-hydrogen` and `gemini-4-neon`.
+
+| Rank | Model | Mean score (all trials) | Valid results | Mean score (valid trials) | Mean attempts | ICC test (S12) | Cox clustered (code check) |
+|:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| 1 (tie) | gemini-4-hydrogen | 14.0 | 5/5 | 14.0 | 1.0 | 5/5 | 5/5 |
+| 1 (tie) | gemini-4-neon | 14.0 | 5/5 | 14.0 | 1.0 | 5/5 | 5/5 |
+| 1 (tie) | gemini-4-argon | 14.0 | 5/5 | 14.0 | 1.2 | 5/5 | 5/5 |
+| 4 | gemini-3.8-flash | 13.0 | 5/5 | 13.0 | 1.4 | 5/5 | 5/5 |
+| 5 | gemini-4-carbon | 11.2 | 4/5 | 14.0 | 1.0 | 4/4 | 4/4 |
+| 6 | gemini-2.5-pro | 7.4 | 3/5 | 12.3 | 4.2 | 3/3 | 3/3 |
+
+![Score of every trial for each model](docs/model_comparison_scores.png)
+
+![Pass rate of each test for each model](docs/model_comparison_tests.png)
+
+Observations:
+
+* Three models reach the maximum score in every trial, and they do so on the first or second attempt. `gemini-3.8-flash` scores 13 in every trial; the missing point is always S3, the dictionary of proportional-hazards p-values.
+* `gemini-4-carbon` scores 14 in four trials. In the fifth, the code ran but defined none of the required output variables, so the score is 0.
+* `gemini-2.5-pro` needs 4.2 attempts on average. Two of its five trials never produced working code within 5 attempts (errors such as misuse of the lifelines result objects, regression design matrices that are not full rank, event-time variable names in formulas, and an invalid `method` argument to `MixedLM.fit`).
+* Across all 58 stored trials, no reported ICC matched the ICC of `length_of_stay`. Every ICC test failure is a missing output.
+
+Trials beyond the first 5 were run for some models. They are not part of the comparison table above, and they give the same picture:
+
+| Model | Prompt | Completed trials | Valid results | Mean score (all) | Mean score (valid) |
+|---|---|:---:|:---:|:---:|:---:|
+| gemini-4-argon | original | 10 | 10/10 | 14.0 | 14.0 |
+| gemini-4-hydrogen | original | 9 | 9/9 | 14.0 | 14.0 |
+| gemini-4-neon | original | 5 | 5/5 | 14.0 | 14.0 |
+| gemini-3.8-flash | original | 8 | 8/8 | 13.0 | 13.0 |
+| gemini-4-carbon | original | 6 | 5/6 | 10.5 | 12.6 |
+| gemini-2.5-pro | original | 10 | 6/10 | 7.6 | 12.7 |
+| gemini-2.5-pro | pinned | 10 | 7/10 | 8.3 | 11.9 |
+
+Per-trial figures for `gemini-2.5-pro` under both prompts:
+
+![gemini-2.5-pro scores per trial, original and pinned prompts](docs/agent_scores.png)
+
+## Effect of stating the primary outcome
+
+`gemini-2.5-pro` was run 10 times with each prompt. In the `original` prompt, the mixed-model objective does not name the outcome, so a model could reasonably choose `length_of_stay`. In the `pinned` prompt, the outcome is stated once.
+
+| Prompt | Trials | Valid results | Mean score (all) | Mean score (valid) | Scores of valid trials |
+|---|:---:|:---:|:---:|:---:|---|
+| original | 10 | 6 | 7.6 | 12.7 | 11, 12, 12, 13, 14, 14 |
+| pinned | 10 | 7 | 8.3 | 11.9 | 11, 11, 11, 12, 12, 13, 13 |
+
+The difference between the prompts is small compared with the variation between trials. It comes mainly from how many trials produced working code. In both prompts, every valid trial passed the ICC test, so the prompt wording did not change which outcome was used.
+
+The test-by-test pass pattern for these 20 trials:
+
+![gemini-2.5-pro tests passed per trial](docs/test_matrix.png)
+
+## Technology stack
+
+| Technology | Use in this project |
+|---|---|
+| Python 3.12 | All code |
+| NumPy (`default_rng`) | Seeded data generation, bootstrap resampling, array computation |
+| pandas | Data handling, hospital-year panel construction |
+| SciPy | Normal distribution for bootstrap p-values |
+| lifelines | Kaplan-Meier estimator, Cox proportional hazards with clustered standard errors, Schoenfeld-residual test |
+| linearmodels | Two-way fixed effects with `PanelOLS` and clustered standard errors |
+| statsmodels | Linear mixed model (`MixedLM`, REML and maximum likelihood), ordinary least squares, AIC |
+| scikit-learn | Histogram gradient boosting regressors and classifier for the T- and X-learners |
+| matplotlib | All figures in `docs/` |
+| google-genai | Gemini API client with chat sessions, a fixed model name and a seed |
+| python-dotenv | Loads `GEMINI_API_KEY` from `.env` |
+| `subprocess` | Runs generated code in a separate process with a time limit |
+| JSON | Results exchange between the agent runs and the tests (no pickle files) |
+| Jupyter, jupytext, nbconvert, nbformat, ipykernel | Builds and runs the notebooks from the source scripts |
+
+## Repository layout
+
+```
+antimicrobial-stewardship-causal-inference-llm-agent-benchmark/
+├── generate_data.py          # synthetic data generator, writes asp_study_data.csv and ground_truth.json
+├── asp_study_data.csv        # 11,830 admissions x 22 columns
+├── ground_truth.json         # true effects used to check estimates
+├── golden_solution.py        # expert solution, source of golden_notebook.ipynb
+├── golden_notebook.ipynb     # golden solution with stored outputs
+├── asp_tests.py              # the 14 scored tests
+├── unit_test_notebook.ipynb  # runs the tests on a results file, with stored outputs
+├── asp_common.py             # required outputs, prompt builder, JSON read and write
+├── run_agent.py              # Gemini agent runner
+├── agent_notebook.ipynb      # runs one agent trial from a notebook
+├── rescore_runs.py           # re-scores stored trials without calling the API
+├── summarize_runs.py         # writes runs/summary.json and runs/comparison.md
+├── make_figures.py           # writes the figures in docs/
+├── make_badges.py            # writes the badges in docs/images/badges/
+├── build_notebooks.py        # regenerates the three notebooks
+├── runs/                     # stored prompts, code, errors and scores for every trial
+├── docs/                     # figures used in this README
+├── requirements.txt          # pinned dependencies
+├── .env.example              # template for GEMINI_API_KEY
+└── LICENSE
+```
+
+## Reproducing the results
+
 ```bash
-# Ensure .env has your GEMINI_API_KEY
-jupyter notebook agent_notebook.ipynb
-# Run All
+# Data and golden solution
+.venv/bin/python generate_data.py
+.venv/bin/python golden_solution.py
+.venv/bin/python asp_tests.py golden_results.json
+
+# Agent trials (requires GEMINI_API_KEY in .env). Finished trials are skipped, so the command can be repeated.
+.venv/bin/python run_agent.py --model gemini-4-argon --condition original --trials 5
+.venv/bin/python run_agent.py --model gemini-2.5-pro --condition pinned --trials 10
+
+# Summaries, figures and notebooks
+.venv/bin/python rescore_runs.py       # optional: re-score stored trials after changing asp_tests.py
+.venv/bin/python summarize_runs.py     # writes runs/summary.json and runs/comparison.md
+.venv/bin/python make_figures.py
+.venv/bin/python build_notebooks.py
 ```
 
-**Colab:**
-1. Open `agent_notebook.ipynb` in Colab
-2. Add `GEMINI_API_KEY` to Colab Secrets (key icon in left sidebar)
-3. Upload `asp_study_data.csv` and `requirements.txt` to the session
-4. Run All. Results are saved to `agent_results.pkl`.
+`run_agent.py` options: `--model` (any Gemini model name available to your key), `--condition` (`original` or `pinned`), `--trials`, `--start` (first trial number), `--temperature` (default 0.7), `--max-attempts` (default 5) and `--exec-timeout` (seconds, default 900).
 
----
+## Limitations
 
-## Dataset
+* The model comparison uses 5 trials per model. This gives a clear separation between the weakest and strongest models, but not between models whose scores are close.
+* The test suite has a ceiling. Three models reach 14 out of 14 in every trial, so the suite cannot rank them against each other. Harder objectives or a stricter set of tests would be needed to separate them.
+* The data have two adoption cohorts. Effect differences that depend on more cohorts cannot be tested.
+* The Cox standard error test (S2) checks plausibility, not clustering. The code check in `summarize_runs.py` covers that point without scoring it.
+* The pinned-outcome experiment was run for `gemini-2.5-pro` only.
+* The four `gemini-4-*` names are model identifiers returned by the API. The API gives no description of how they differ.
+* All data are synthetic. Results on this benchmark do not measure performance on real clinical data, which has missing values, measurement error and unknown confounding.
+* LLM outputs vary between runs. The temperature is 0.7 and the seed is the trial number, but the API does not guarantee identical output for the same seed.
 
-`asp_study_data.csv`: 11,629 rows x 22 columns (synthetic, generated with fixed seed 42)
+## Security notes
 
-| Column | Description |
-|---|---|
-| `patient_id` | Unique patient identifier |
-| `hospital_id` | Hospital (1-15) |
-| `year` | Admission year (2019-2022) |
-| `asp_active` | 1 if ASP was active at admission, 0 otherwise |
-| `asp_adoption_year` | Year hospital adopted ASP (9999 = never) |
-| `time_to_improvement` | Days until clinical improvement (survival time) |
-| `event_observed` | 1 = improved, 0 = right-censored |
-| `antibiotic_duration` | Days of antibiotic treatment (primary outcome) |
-| `age`, `sex`, `age_group` | Patient demographics |
-| `severity_score` | Clinical severity (10-100) |
-| `comorbidity_score` | Charlson comorbidity index (0-8) |
-| `immune_compromised` | Binary immunocompromised flag |
-| `infection_type` | respiratory / urinary / bloodstream / wound |
-| `ward` | ICU / general / surgical |
-| `mortality` | In-hospital mortality (binary) |
-| `readmission_30d` | 30-day readmission (binary) |
-| `c_diff_infection` | C. difficile infection (binary) |
-| `length_of_stay` | Total length of stay (days) |
+* Generated code runs in a separate process with a time limit. This is not a sandbox, because the process has the same file and network access as the user who starts it. Use a container or virtual machine to run code from models that are not trusted.
+* Results are stored as JSON, and no pickle files are read.
+* `.env` is excluded from version control. The stored trial logs contain prompts, generated code and error messages, and no API keys.
 
----
+## License
 
-## Methods
-
-| Method | Why Required |
-|---|---|
-| Survival Analysis | 32.8% of patients right-censored, naive analysis is biased |
-| DiD Estimation | Staggered voluntary adoption requires TWFE and parallel trends test |
-| Heterogeneous Treatment Effects | Population ATT hides patient-level heterogeneity |
-| Mixed Effects Modeling | Patients nested in hospitals, ICC must be modelled |
+MIT. See [LICENSE](LICENSE).

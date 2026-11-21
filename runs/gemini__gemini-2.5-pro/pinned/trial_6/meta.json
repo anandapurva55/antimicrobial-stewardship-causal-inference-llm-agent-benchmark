@@ -1,0 +1,20 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "pinned",
+ "trial": 6,
+ "seed": 6,
+ "temperature": 0.7,
+ "started": "2026-11-21T03:46:09",
+ "attempts": 5,
+ "executed_ok": false,
+ "errors": [
+  "formulaic.errors.FactorEvaluationError: Unable to evaluate factor `t_`. [NameError: `t_` is not present in the dataset or evaluation context.]",
+  "ValueError: exog does not have full column rank. If you wish to proceed with model estimation irrespective of the numerical accuracy of coefficient estimates, you can set check_rank=False.",
+  "ValueError: exog does not have full column rank. If you wish to proceed with model estimation irrespective of the numerical accuracy of coefficient estimates, you can set check_rank=False.",
+  "ValueError: exog does not have full column rank. If you wish to proceed with model estimation irrespective of the numerical accuracy of coefficient estimates, you can set check_rank=False.",
+  "KeyError: '`t_-1`'"
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T03:52:20"
+}

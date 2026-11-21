@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/original/trial_6/_run.py", line 144, in <module>
+    res_cs = mod_cs.fit(cov_type='clustered', cluster_entity=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/linearmodels/panel/model.py", line 3382, in fit
+    check_absorbed(x, [str(var) for var in self.exog.vars], x_orig)
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/linearmodels/panel/utility.py", line 617, in check_absorbed
+    raise AbsorbingEffectError(msg)
+linearmodels.panel.utility.AbsorbingEffectError: 
+The model cannot be estimated. The included effects have fully absorbed
+one or more of the variables. This occurs when one or more of the dependent
+variable is perfectly explained using the effects included in the model.
+
+The following variables or variable combinations have been fully absorbed
+or have become perfectly collinear after effects are removed:
+
+          Intercept, G
+          Intercept, Post
+
+Set drop_absorbed=True to automatically drop absorbed variables.
+

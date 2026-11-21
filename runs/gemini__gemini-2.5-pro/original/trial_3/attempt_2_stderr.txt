@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/original/trial_3/_run.py", line 46, in <module>
+    ph_summary = ph_test_results.summary
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'summary'

@@ -1,0 +1,17 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "original",
+ "trial": 2,
+ "seed": 2,
+ "temperature": 0.7,
+ "started": "2026-11-21T03:50:58",
+ "attempts": 3,
+ "executed_ok": true,
+ "errors": [
+  "IndexError: list index out of range",
+  "KeyError: 'year'"
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T04:58:30"
+}
