@@ -27,7 +27,7 @@ The data are **synthetic**, so the true effects are known and every estimate can
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | Gemini models compared | Automated tests | Models with a perfect 14/14 mean | Callaway-Sant'Anna ATT in days (golden solution) | Plain TWFE estimate in days (biased) | True ATT in days (from the generator) |
 
-![Leaderboard of six Gemini models, 5 trials each](docs/model_leaderboard.png)
+![Leaderboard of six Gemini models, 5 trials each](docs/leaderboard.png)
 
 ## Table of contents
 

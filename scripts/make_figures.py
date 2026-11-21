@@ -130,7 +130,7 @@ if len(ALL):
             ax.text(r["mean"] + .2, i, f"#{rank}  {r['mean']:.1f}/14  |  valid {int(r['ran'])}/{int(r['n'])}  |  {r['att']:.1f} attempts", va="center", fontsize=9)
         ax.set_xlim(0, 21); ax.set_xticks(range(0, 15, 2)); ax.set_xlabel("Mean score over 5 trials (of 14 tests)")
         ax.set_title(f"Leaderboard: 5 trials per model, original prompt (higher is better)")
-        fig.tight_layout(); fig.savefig(DOCS_DIR / "model_leaderboard.png"); plt.close(fig)
+        fig.tight_layout(); fig.savefig(DOCS_DIR / "leaderboard.png"); plt.close(fig)
 
         order = list(O.groupby("model").score.mean().sort_values().index)
         fig, ax = plt.subplots(figsize=(8, 0.62 * len(order) + 1.4)); rng = np.random.default_rng(1)
