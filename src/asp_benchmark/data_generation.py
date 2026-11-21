@@ -1,6 +1,7 @@
 """Generate the synthetic ASP study dataset and its ground truth.
 
-    python -m asp_benchmark.data_generation    # writes data/asp_study_data.csv + data/ground_truth.json
+    python -m asp_benchmark.data_generation              # writes data/asp_study_data.csv + data/ground_truth.json (seed 42)
+    python -m asp_benchmark.data_generation --seed 7     # a fresh dataset; set ASP_DATA_DIR to keep the committed files
 
 Design (everything the benchmark claims is set here, so it can be checked):
 
@@ -124,8 +125,12 @@ def generate(seed=SEED):
 
 
 if __name__ == "__main__":
-    data, truth = generate()
-    DATA_DIR.mkdir(exist_ok=True)
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--seed", type=int, default=SEED)
+    data, truth = generate(ap.parse_args().seed)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     data.to_csv(CSV, index=False)
     with open(TRUTH, "w") as f:
         json.dump(truth, f, indent=2)

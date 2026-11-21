@@ -19,6 +19,7 @@ from asp_benchmark.common import save_results
 from asp_benchmark.paths import CSV, GOLDEN_RESULTS, RESULTS_DIR, TRUTH
 warnings.filterwarnings("ignore")
 OUTCOME = "antibiotic_duration"
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 df = pd.read_csv(CSV)
 truth = json.load(open(TRUTH)) if TRUTH.exists() else {}
 assert df.shape[0] > 10_000 and df.hospital_id.nunique() == 15 and set(df.year) == set(range(2017, 2023))

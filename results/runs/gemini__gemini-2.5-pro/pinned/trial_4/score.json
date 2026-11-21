@@ -24,7 +24,7 @@
    "id": "S4",
    "desc": "DiD panel: 90 rows, unique (hospital,year), contains true hospital-year mean antibiotic_duration",
    "passed": false,
-   "msg": "missing output Index(['year', 'hospital_id'], dtype='object')"
+   "msg": "missing output Index(['hospital_id', 'year'], dtype='object')"
   },
   {
    "id": "S5",

@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/pinned/trial_7/_run.py", line 48, in <module>
-    row.name: row['p'] for _, row in assumption_results[0].iterrows()
-                                     ~~~~~~~~~~~~~~~~~~^^^
-IndexError: list index out of range

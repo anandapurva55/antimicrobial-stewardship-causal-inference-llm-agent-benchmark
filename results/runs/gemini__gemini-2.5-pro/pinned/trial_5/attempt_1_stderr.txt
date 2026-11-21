@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/pinned/trial_5/_run.py", line 48, in <module>
-    ph_test_pvalues = assumption_results['p'].to_dict()
-                      ~~~~~~~~~~~~~~~~~~^^^^^
-TypeError: list indices must be integers or slices, not str
