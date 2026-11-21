@@ -313,6 +313,7 @@ antimicrobial-stewardship-causal-inference-llm-agent-benchmark/
 * Generated code runs in a separate process with a time limit. This is not a sandbox, because the process has the same file and network access as the user who starts it. Use a container or virtual machine to run code from models that are not trusted.
 * Results are stored as JSON, and no pickle files are read.
 * `.env` is excluded from version control. The stored trial logs contain prompts, generated code and error messages, and no API keys.
+* To report a vulnerability, follow [SECURITY.md](SECURITY.md).
 
 ## License
 
