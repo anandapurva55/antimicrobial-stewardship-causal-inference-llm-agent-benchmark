@@ -1,0 +1,29 @@
+mark/.venv/lib/python3.12/site-packages/lifelines/utils/__init__.py", line 1955, in _string_seed_transform
+    design_info = formulaic.ModelSpec.from_spec(formulaic.Formula(formula).get_model_matrix(df))
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/formulaic/formula.py", line 121, in __call__
+    return cls.from_spec(
+           ^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/formulaic/formula.py", line 166, in from_spec
+    .get_terms(spec, context=context)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/formulaic/parser/types/formula_parser.py", line 226, in get_terms
+    return self.parse(formula, target=self.Target.TERMS, context=context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/formulaic/parser/types/formula_parser.py", line 124, in parse
+    out = ast = self.get_ast_from_tokens(tokens, context=context)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/formulaic/parser/types/formula_parser.py", line 155, in get_ast_from_tokens
+    return tokens_to_ast(
+           ^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/formulaic/parser/algos/tokens_to_ast.py", line 103, in tokens_to_ast
+    for operator_token, operators in operator_resolver.resolve(token):
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/formulaic/parser/parser.py", line 561, in resolve
+    yield self._resolve(token, sym)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/formulaic/parser/types/operator_resolver.py", line 81, in _resolve
+    raise exc_for_token(token, f"Unknown operator '{symbol}'.")
+formulaic.errors.FormulaSyntaxError: Unknown operator '<'.
+
+asp_active + age + comorbidity_score + immune_compromised + severity_score + sex_M + infection_type_respiratory + infection_type_urinary + infection_type_wound + hospital_size_medium + hospital_size_small + region_East + region_North + region_South + region_West + ward_general + ward_surgical + age_group_65+ + age_group_⧛[1;31m<[0m⧚40

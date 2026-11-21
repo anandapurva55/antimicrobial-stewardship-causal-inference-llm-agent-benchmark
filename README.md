@@ -183,7 +183,7 @@ S2 checks that the reported standard error is plausible for a hospital-clustered
 
 ## Model comparison
 
-Six Gemini models were evaluated on the `original` prompt with 5 trials each. The models are `gemini-2.5-pro`, `gemini-3.8-flash`, and four models named `gemini-4-argon`, `gemini-4-carbon`, `gemini-4-hydrogen` and `gemini-4-neon`. Each trial stores the model it requested (`model_requested`) and the name the API returned (`model_reported`) in its `meta.json`, and the two match in all 35 trials. `python evaluation/list_models.py` lists the models your API key can use, and the [Gemini models documentation](https://ai.google.dev/gemini-api/docs/models) describes the model families.
+Six Gemini models were evaluated on the `original` prompt with 5 trials each: trials 0 to 4 of every model. This selection was fixed in advance by trial number and not by score. The models are `gemini-2.5-pro`, `gemini-3.8-flash`, and four models named `gemini-4-argon`, `gemini-4-carbon`, `gemini-4-hydrogen` and `gemini-4-neon`. Each trial stores the model it requested (`model_requested`) and the name the API returned (`model_reported`) in its `meta.json`, and the two match in all 45 stored trials. `python evaluation/list_models.py` lists the models your API key can use, and the [Gemini models documentation](https://ai.google.dev/gemini-api/docs/models) describes the model families.
 
 | Rank | Model | Mean score (all trials) | 95% CI of mean score | Valid results | Mean score (valid trials) | Mean attempts | ICC test (S12) | Cox clustered (code check) |
 |:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -205,7 +205,7 @@ Observations:
 * Four models reach the maximum score in every trial, and they do so on the first or second attempt.
 * `gemini-4-carbon` scores 14 in four trials. In the fifth, the code ran but defined none of the required output variables, so the score is 0.
 * `gemini-2.5-pro` needs 4.2 attempts on average. Two of its five trials never produced working code within 5 attempts (errors such as misuse of the lifelines result objects, regression design matrices that are not full rank, event-time variable names in formulas, and an invalid `method` argument to `MixedLM.fit`).
-* Across all 35 stored trials, no reported ICC matched the ICC of `length_of_stay`. Every ICC test failure is a missing output.
+* Across all 45 stored trials, no reported ICC matched the ICC of `length_of_stay`. Every ICC test failure is a missing output.
 
 Per-trial figures for `gemini-2.5-pro` under both prompts:
 
@@ -213,16 +213,16 @@ Per-trial figures for `gemini-2.5-pro` under both prompts:
 
 ## Effect of stating the primary outcome
 
-`gemini-2.5-pro` was run 5 times with each prompt. In the `original` prompt, the mixed-model objective does not name the outcome, so a model could reasonably choose `length_of_stay`. In the `pinned` prompt, the outcome is stated once.
+`gemini-2.5-pro` was run 10 times with each prompt. This experiment is separate from the leaderboard: it uses all 10 trials of this one model under each prompt, whereas the leaderboard uses trials 0 to 4 of every model. In the `original` prompt, the mixed-model objective does not name the outcome, so a model could reasonably choose `length_of_stay`. In the `pinned` prompt, the outcome is stated once.
 
 | Prompt | Trials | Valid results | Mean score (all) | 95% CI of mean score | Mean score (valid) | Scores of valid trials |
 |---|:---:|:---:|:---:|:---:|:---:|---|
-| original | 5 | 3 | 7.4 | 2.2 to 12.6 | 12.3 | 11, 12, 14 |
-| pinned | 5 | 4 | 9.6 | 4.8 to 12.4 | 12.0 | 11, 12, 12, 13 |
+| original | 10 | 6 | 7.6 | 3.7 to 11.5 | 12.7 | 11, 12, 12, 13, 14, 14 |
+| pinned | 10 | 7 | 8.3 | 4.7 to 11.6 | 11.9 | 11, 11, 11, 12, 12, 13, 13 |
 
-The pinned prompt scored 2.2 points higher on average, with a 95% bootstrap interval of -5.0 to +9.2, so the data cannot distinguish the two prompts. The trials with valid results score about the same (12.3 and 12.0); the difference in the overall mean comes from one more trial producing working code under the pinned prompt. In both prompts, every valid trial passed the ICC test, so the prompt wording did not change which outcome was used.
+The pinned prompt scored 0.7 points higher on average, with a 95% bootstrap interval of -4.3 to +5.8, so the data cannot distinguish the two prompts. The trials with valid results score about the same (12.7 and 11.9); the difference in the overall mean comes from one more trial producing working code under the pinned prompt. In both prompts, every valid trial passed the ICC test, so the prompt wording did not change which outcome was used.
 
-The figure below shows the result of each test (rows S1 to S14) in each of the 10 trials (columns; O0 to O4 use the original prompt and P0 to P4 use the pinned prompt). Teal means the test passed and amber means it failed. A column that is entirely amber is a trial that produced no valid results. Row S3 (the proportional-hazards p-value dictionary) is amber in 6 of the 7 trials with valid results, because the model did not return a dictionary that includes `asp_active`.
+The figure below shows the result of each test (rows S1 to S14) in each of the 20 trials (columns; O0 to O9 use the original prompt and P0 to P9 use the pinned prompt). Teal means the test passed and amber means it failed. A column that is entirely amber is a trial that produced no valid results. Row S3 (the proportional-hazards p-value dictionary) is amber in 11 of the 13 trials with valid results, because the model did not return a dictionary that includes `asp_active`.
 
 ![gemini-2.5-pro tests passed per trial](docs/test_matrix.png)
 
@@ -326,7 +326,7 @@ python3.12 -m venv .venv
 .venv/bin/python evaluation/list_models.py
 # Finished trials are skipped, so the command can be repeated.
 .venv/bin/python evaluation/run_agent.py --model gemini-4-argon --condition original --trials 5
-.venv/bin/python evaluation/run_agent.py --model gemini-2.5-pro --condition pinned --trials 5
+.venv/bin/python evaluation/run_agent.py --model gemini-2.5-pro --condition pinned --trials 10
 
 # Summaries, figures and notebooks
 .venv/bin/python evaluation/rescore_runs.py     # optional: re-score stored trials after changing the tests

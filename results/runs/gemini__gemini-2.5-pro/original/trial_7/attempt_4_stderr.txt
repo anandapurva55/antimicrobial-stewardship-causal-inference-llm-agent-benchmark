@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/original/trial_7/_run.py", line 63, in <module>
+    ph_test_results = cph.proportional_hazard_test_
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/.venv/lib/python3.12/site-packages/lifelines/fitters/coxph_fitter.py", line 597, in __getattr__
+    raise AttributeError("%s has no attribute '%s'" % (self._class_name, attr))
+AttributeError: CoxPHFitter has no attribute 'proportional_hazard_test_'

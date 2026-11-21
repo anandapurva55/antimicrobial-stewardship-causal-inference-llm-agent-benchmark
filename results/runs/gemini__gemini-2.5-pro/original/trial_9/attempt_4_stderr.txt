@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/apurvaanand/Desktop/antimicrobial-stewardship-program-gemini-causal-inference-benchmark/runs/gemini__gemini-2.5-pro/original/trial_9/_run.py", line 66, in <module>
+    ph_test_pvalues = ph_test_results_df['p'].to_dict()
+                      ~~~~~~~~~~~~~~~~~~^^^^^
+TypeError: 'StatisticalResult' object is not subscriptable

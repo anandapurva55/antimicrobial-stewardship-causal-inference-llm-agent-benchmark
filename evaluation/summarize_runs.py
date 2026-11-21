@@ -4,9 +4,10 @@
 
 * "Valid results" = the generated code ran and defined at least one of the required outputs.
 * "Cox clustered (code)" is a static check of the final generated script for `cluster_col`; it is not scored.
-* Every model has 5 trials per prompt.
-* Intervals are 95% percentile bootstrap intervals over trials (10,000 resamples, fixed seed). With 5 to 10 trials per
-  model they are wide, and they are reported so that the size of the uncertainty is visible.
+* Leaderboard: trials 0 to 4 of the original prompt for every model, so every model has 5 trials.
+* Prompt experiment: all 10 trials of gemini-2.5-pro under each of the two prompts.
+* Intervals are 95% percentile bootstrap intervals over trials (10,000 resamples, fixed seed). With 5 to 10 trials they
+  are wide, and they are reported so that the size of the uncertainty is visible.
 """
 import collections as C
 import glob
@@ -70,22 +71,32 @@ def line(model, cond, st):
             f"{st['s12']}/{st['valid']} | {st['attempts']:.1f} | {st['clustered']}/{st['valid']} |")
 
 
+LEADERBOARD_TRIALS = 5
+PROMPT_EXPERIMENT_MODEL = "gemini-2.5-pro"
+
 rows = load()
-summary = {f"{m}/{c}": stats(v) for (m, c), v in rows.items()}
-if "gemini-2.5-pro/original" in summary and "gemini-2.5-pro/pinned" in summary:
-    lo, hi = bootstrap_diff_ci(summary["gemini-2.5-pro/original"]["scores"], summary["gemini-2.5-pro/pinned"]["scores"])
-    summary["gemini-2.5-pro/pinned_minus_original"] = dict(mean_difference=summary["gemini-2.5-pro/pinned"]["mean_all"] - summary["gemini-2.5-pro/original"]["mean_all"], ci95=[lo, hi])
+leaderboard = {m: stats([(sc, mt) for sc, mt in v if mt["trial"] < LEADERBOARD_TRIALS])
+               for (m, c), v in rows.items() if c == "original"}
+experiment = {c: stats(rows[(PROMPT_EXPERIMENT_MODEL, c)]) for c in ("original", "pinned") if (PROMPT_EXPERIMENT_MODEL, c) in rows}
+summary = {"leaderboard": leaderboard, "prompt_experiment": experiment}
+both_prompts = len(experiment) == 2
+if both_prompts:
+    lo, hi = bootstrap_diff_ci(experiment["original"]["scores"], experiment["pinned"]["scores"])
+    difference = dict(mean_difference=experiment["pinned"]["mean_all"] - experiment["original"]["mean_all"], ci95=[lo, hi])
+    summary["prompt_experiment_pinned_minus_original"] = difference
 json.dump(summary, open(RESULTS_DIR / "summary.json", "w"), indent=1)
 
-ranked = sorted(summary.items(), key=lambda kv: (kv[0].split("/")[1] != "original", -kv[1]["mean_all"], kv[1]["attempts"])
-                if "pinned_minus_original" not in kv[0] else (9, 0, 0))
-ranked = [(k, v) for k, v in ranked if "pinned_minus_original" not in k]
-out = HEADER + [line(k.split("/")[0], k.split("/")[1], st) for k, st in ranked]
+ranked = sorted(leaderboard.items(), key=lambda kv: (-kv[1]["mean_all"], kv[1]["attempts"]))
+out = ["Leaderboard (original prompt, 5 trials per model)", ""] + HEADER + [line(m, "original", st) for m, st in ranked]
+if both_prompts:
+    out += ["", f"Prompt experiment ({PROMPT_EXPERIMENT_MODEL}, all trials)", ""] + HEADER + [line(PROMPT_EXPERIMENT_MODEL, c, experiment[c]) for c in ("original", "pinned")]
 open(RESULTS_DIR / "comparison.md", "w").write("\n".join(out) + "\n")
 
 print("\n".join(out))
-for k, st in ranked:
-    print(k, "failures among valid runs:", st["failures"])
-if "gemini-2.5-pro/pinned_minus_original" in summary:
-    d = summary["gemini-2.5-pro/pinned_minus_original"]
-    print(f"gemini-2.5-pro pinned minus original: {d['mean_difference']:+.1f} (95% CI {d['ci95'][0]:.1f} to {d['ci95'][1]:.1f})")
+for m, st in ranked:
+    print(m, "failures among valid runs:", st["failures"])
+if both_prompts:
+    d = difference
+    print(f"{PROMPT_EXPERIMENT_MODEL} pinned minus original: {d['mean_difference']:+.1f} (95% CI {d['ci95'][0]:.1f} to {d['ci95'][1]:.1f})")
+    for c in ("original", "pinned"):
+        print(c, "valid trial scores:", sorted(x for x in experiment[c]["scores"] if x > 0), "failures:", experiment[c]["failures"])

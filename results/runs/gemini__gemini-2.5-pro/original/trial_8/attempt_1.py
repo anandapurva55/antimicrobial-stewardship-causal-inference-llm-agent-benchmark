@@ -1,0 +1,213 @@
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+from lifelines import CoxPHFitter
+from linearmodels.panel import PanelOLS
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from scipy.stats import norm
+
+# --- Objective 1: Survival Analysis ---
+
+# Prepare data for Cox model: one-hot encode categorical variables
+df_cox = df.copy()
+categorical_cols_cox = ['hospital_size', 'region', 'ward', 'sex', 'age_group', 'infection_type']
+df_cox = pd.get_dummies(df_cox, columns=categorical_cols_cox, drop_first=True, dtype=float)
+
+# Define covariates for the model
+all_cols = df_cox.columns
+base_covariates = ['age', 'comorbidity_score', 'immune_compromised', 'severity_score']
+ohe_covariates = [col for col in all_cols if any(cat_col in col for cat_col in categorical_cols_cox)]
+formula_cols = ['asp_active'] + base_covariates + ohe_covariates
+
+# Fit Cox Proportional Hazards model
+cph = CoxPHFitter()
+cph.fit(df_cox,
+        duration_col='time_to_improvement',
+        event_col='event_observed',
+        formula=" + ".join(formula_cols),
+        cluster_col='hospital_id')
+
+# Extract required outputs
+cox_hr_asp = float(cph.hazard_ratios_['asp_active'])
+cox_se_asp = float(cph.summary.loc['asp_active', 'se(coef)'])
+
+# Test proportional hazards assumption
+assumption_results_list = cph.check_assumptions(df_cox, p_value_threshold=0.05, show_plots=False)
+ph_test_pvalues = {}
+for res_df in assumption_results_list:
+    # The summary DataFrame's index name is the covariate
+    covariate_name = res_df.index.name
+    # The p-value is in the 'p' column of the DataFrame
+    p_value = res_df.loc['test_statistic', 'p']
+    ph_test_pvalues[covariate_name] = float(p_value)
+
+
+# --- Objective 2: Causal Impact (DiD) ---
+
+# Build hospital-year panel for output
+did_panel = df.groupby(['hospital_id', 'year']).agg(
+    antibiotic_duration=('antibiotic_duration', 'mean')
+).reset_index()
+
+# Build panel for estimation
+panel_for_est = df.groupby(['hospital_id', 'year']).agg(
+    antibiotic_duration=('antibiotic_duration', 'mean'),
+    asp_adoption_year=('asp_adoption_year', 'first')
+).reset_index()
+
+# Run plain TWFE model
+panel_twfe = panel_for_est.copy()
+panel_twfe['asp_active'] = ((panel_twfe['year'] >= panel_twfe['asp_adoption_year']) &
+                            (panel_twfe['asp_adoption_year'] != 9999)).astype(int)
+panel_twfe = panel_twfe.set_index(['hospital_id', 'year'])
+twfe_mod = PanelOLS.from_formula('antibiotic_duration ~ 1 + asp_active + EntityEffects + TimeEffects', data=panel_twfe)
+twfe_res = twfe_mod.fit(cov_type='clustered', cluster_entity=True)
+twfe_att_estimate = float(twfe_res.params['asp_active'])
+
+# Prepare for robust DiD (Sun-Abraham style with never-treated controls)
+panel_robust = panel_for_est.copy()
+panel_robust['cohort'] = panel_robust['asp_adoption_year'].replace(9999, np.inf)
+
+# Isolate treated units to create event_time
+treated_panel = panel_robust[panel_robust['cohort'] != np.inf].copy()
+treated_panel['event_time'] = treated_panel['year'] - treated_panel['cohort']
+
+# Bin event_time to avoid sparse data at the tails and for stable estimates
+min_event_time, max_event_time = -3, 2
+treated_panel['event_time'] = treated_panel['event_time'].clip(lower=min_event_time, upper=max_event_time)
+
+# Create event time dummies, omitting t-1 as the reference period
+event_times_to_model = sorted([t for t in treated_panel['event_time'].unique() if t != -1])
+dummy_vars = {}
+for t in event_times_to_model:
+    col_name = f"et_{'neg' if t < 0 else ''}{abs(int(t))}"
+    dummy_vars[col_name] = (treated_panel['event_time'] == t).astype(float)
+    dummy_vars[col_name].name = col_name
+
+event_time_dummies_df = pd.DataFrame(dummy_vars, index=treated_panel.index)
+treated_panel = pd.concat([treated_panel, event_time_dummies_df], axis=1)
+
+# Merge back with never-treated to form the full estimation sample
+never_treated_panel = panel_robust[panel_robust['asp_adoption_year'] == 9999].copy()
+estimation_panel = pd.concat([treated_panel, never_treated_panel], sort=True).fillna(0)
+estimation_panel = estimation_panel.set_index(['hospital_id', 'year'])
+
+# Define formula for the robust event study regression
+dummy_cols = list(dummy_vars.keys())
+formula = f'antibiotic_duration ~ 1 + {" + ".join(dummy_cols)} + EntityEffects + TimeEffects'
+
+# Run the model
+mod_robust = PanelOLS.from_formula(formula, data=estimation_panel)
+res_robust = mod_robust.fit(cov_type='clustered', cluster_entity=True)
+
+# Map back from col names to event times
+col_to_time = {f"et_{'neg' if t < 0 else ''}{abs(int(t))}": t for t in event_times_to_model}
+
+# Extract event study results
+event_study_list = []
+for col, time in col_to_time.items():
+    coef = res_robust.params[col]
+    ci = res_robust.conf_int().loc[col]
+    event_study_list.append({'event_time': int(time), 'coef': coef, 'ci_low': ci['lower'], 'ci_high': ci['upper']})
+event_study = pd.DataFrame(event_study_list).sort_values('event_time').reset_index(drop=True)
+
+# Extract pre-trend test results (using t-2)
+pre_trend_coeff_name = 'et_neg2'
+if pre_trend_coeff_name in res_robust.params:
+    pre_trend_coeff = float(res_robust.params[pre_trend_coeff_name])
+    pre_trend_pvalue = float(res_robust.pvalues[pre_trend_coeff_name])
+    pre_trend_ci_series = res_robust.conf_int().loc[pre_trend_coeff_name]
+    pre_trend_ci = [float(pre_trend_ci_series['lower']), float(pre_trend_ci_series['upper'])]
+else:
+    pre_trend_coeff, pre_trend_pvalue, pre_trend_ci = 0.0, 1.0, [0.0, 0.0]
+
+# Calculate robust ATT (weighted average of post-treatment coefficients)
+post_treatment_cols = [col for col, time in col_to_time.items() if time >= 0]
+if post_treatment_cols:
+    post_coeffs = res_robust.params[post_treatment_cols]
+    weights = estimation_panel[post_treatment_cols].sum()
+    did_att_estimate = float(np.average(post_coeffs, weights=weights))
+else:
+    did_att_estimate = 0.0
+
+
+# --- Objective 3: Treatment Heterogeneity ---
+
+# Prepare data for CATE estimation
+df_cate = df.copy()
+outcome, treatment = 'antibiotic_duration', 'asp_active'
+
+features_base = ['age', 'comorbidity_score', 'immune_compromised', 'severity_score']
+features_cat = ['sex', 'infection_type', 'ward', 'hospital_size', 'region', 'hospital_id', 'year']
+X_df = pd.get_dummies(df_cate[features_base + features_cat], columns=features_cat, drop_first=True, dtype=float)
+X, y, T = X_df.values, df_cate[outcome].values, df_cate[treatment].values
+
+# T-Learner implementation
+X_treat, y_treat = X[T == 1], y[T == 1]
+X_control, y_control = X[T == 0], y[T == 0]
+
+m1 = RandomForestRegressor(n_estimators=100, min_samples_leaf=10, random_state=42, n_jobs=-1).fit(X_treat, y_treat)
+m0 = RandomForestRegressor(n_estimators=100, min_samples_leaf=10, random_state=42, n_jobs=-1).fit(X_control, y_control)
+
+cate_estimates = m1.predict(X) - m0.predict(X)
+
+# Bootstrap CI for difference in CATE (elderly vs. young)
+n_bootstraps = 100
+bootstrap_diffs = []
+age_col = df_cate['age'].values
+indices = np.arange(len(df_cate))
+
+for _ in range(n_bootstraps):
+    boot_indices = np.random.choice(indices, size=len(indices), replace=True)
+    X_boot, y_boot, T_boot, age_boot = X[boot_indices], y[boot_indices], T[boot_indices], age_col[boot_indices]
+    
+    X_treat_boot, y_treat_boot = X_boot[T_boot == 1], y_boot[T_boot == 1]
+    X_control_boot, y_control_boot = X_boot[T_boot == 0], y_boot[T_boot == 0]
+    
+    if len(X_treat_boot) < 2 or len(X_control_boot) < 2: continue
+        
+    m1_boot = RandomForestRegressor(n_estimators=50, min_samples_leaf=10, random_state=42, n_jobs=-1).fit(X_treat_boot, y_treat_boot)
+    m0_boot = RandomForestRegressor(n_estimators=50, min_samples_leaf=10, random_state=42, n_jobs=-1).fit(X_control_boot, y_control_boot)
+    
+    cate_boot = m1_boot.predict(X_boot) - m0_boot.predict(X_boot)
+    
+    mask_elderly = age_boot >= 65
+    mask_young = age_boot < 40
+    
+    if mask_elderly.sum() > 0 and mask_young.sum() > 0:
+        mean_cate_elderly = cate_boot[mask_elderly].mean()
+        mean_cate_young = cate_boot[mask_young].mean()
+        bootstrap_diffs.append(mean_cate_elderly - mean_cate_young)
+
+cate_elderly_minus_young_ci = [float(np.percentile(bootstrap_diffs, 2.5)), float(np.percentile(bootstrap_diffs, 97.5))]
+
+
+# --- Objective 4: Hierarchical Modeling ---
+
+# Define formula for mixed-effects and OLS models
+fixed_effects = [
+    'asp_active', 'age', 'comorbidity_score', 'immune_compromised', 'severity_score', 'year',
+    'C(sex)', 'C(infection_type)', 'C(hospital_size)', 'C(region)', 'C(ward)'
+]
+formula_fixed = f'antibiotic_duration ~ {" + ".join(fixed_effects)}'
+
+# Fit mixed-effects model
+mixed_model = smf.mixedlm(f'{formula_fixed}', data=df, groups=df['hospital_id'])
+mixed_model_fit = mixed_model.fit(method='ML', reml=False)
+
+# Fit naive OLS model for comparison
+ols_model = smf.ols(f'{formula_fixed}', data=df)
+ols_model_fit = ols_model.fit()
+
+# Extract required outputs
+mixed_model_aic = float(mixed_model_fit.aic)
+naive_ols_aic = float(ols_model_fit.aic)
+mixed_asp_coeff = float(mixed_model_fit.params['asp_active'])
+
+# Calculate ICC
+random_effect_variance = float(mixed_model_fit.cov_re.iloc[0, 0])
+residual_variance = float(mixed_model_fit.scale)
+icc_value = random_effect_variance / (random_effect_variance + residual_variance)

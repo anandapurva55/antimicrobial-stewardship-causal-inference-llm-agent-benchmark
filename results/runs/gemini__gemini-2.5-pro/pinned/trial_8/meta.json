@@ -1,0 +1,18 @@
+{
+ "backend": "gemini",
+ "model_requested": "gemini-2.5-pro",
+ "condition": "pinned",
+ "trial": 8,
+ "seed": 8,
+ "temperature": 0.7,
+ "started": "2026-11-21T05:01:19",
+ "attempts": 4,
+ "executed_ok": true,
+ "errors": [
+  "AttributeError: 'list' object has no attribute 'p'",
+  "asp_active + age + comorbidity_score + immune_compromised + severity_score + sex_M + infection_type_respiratory + infection_type_urinary + infection_type_wound + hospital_size_medium + hospital_size_small + region_East + region_North + region_South + region_West + ward_general + ward_surgical + age_",
+  "KeyError: 't_neg4'"
+ ],
+ "model_reported": "gemini-2.5-pro",
+ "finished": "2026-11-21T05:05:02"
+}

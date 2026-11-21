@@ -1,0 +1,90 @@
+{
+ "score": 13,
+ "total": 14,
+ "tests": [
+  {
+   "id": "S1",
+   "desc": "Cox HR for ASP matches recomputed HR (+-15%) and is >1",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S2",
+   "desc": "Cox SE for ASP is plausible for a hospital-clustered model (0.5x to 2x the reference robust SE)",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S3",
+   "desc": "PH test p-values reported as a dictionary that includes asp_active, all in [0, 1]",
+   "passed": false,
+   "msg": "AssertionError: need a dict of p-values that includes asp_active"
+  },
+  {
+   "id": "S4",
+   "desc": "DiD panel: 90 rows, unique (hospital,year), contains true hospital-year mean antibiotic_duration",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S5",
+   "desc": "Event study has CIs, includes a pre-period lead, CIs bracket estimates",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S6",
+   "desc": "Parallel trends: pre-trend coef/p/CI reported and consistent (p>0.05, CI contains 0)",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S7",
+   "desc": "TWFE ATT matches recomputed TWFE (+-0.3 days)",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S8",
+   "desc": "Staggered-robust ATT within 0.5 days of ground-truth ATT",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S9",
+   "desc": "CATE: one finite value per patient, real heterogeneity (std>0.3)",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S10",
+   "desc": "CATE: elderly benefit more than young AND mean treated CATE within 1.5 days of truth",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S11",
+   "desc": "CATE bootstrap CI reported for elderly-minus-young difference",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S12",
+   "desc": "ICC within +-50% of ICC recomputed on antibiotic_duration; flags length_of_stay mix-up",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S13",
+   "desc": "Mixed-model AIC < naive OLS AIC, with both reported",
+   "passed": true,
+   "msg": ""
+  },
+  {
+   "id": "S14",
+   "desc": "Mixed-model ASP coefficient within 1.0 of recomputed; RE variance within 50%",
+   "passed": true,
+   "msg": ""
+  }
+ ]
+}

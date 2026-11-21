@@ -118,7 +118,7 @@ if len(ALL):
     ax.spines[:].set_visible(False); fig.tight_layout(); fig.savefig(DOCS_DIR / "test_matrix.png"); plt.close(fig)
 
     # 6c/6d: comparison across models, original prompt only
-    O = ALL[ALL.cond == "original"]
+    O = ALL[(ALL.cond == "original") & (ALL.trial < 5)]  # leaderboard: trials 0 to 4 of every model
     if O.model.nunique() > 1:
         fam = lambda m: GREY if "2.5" in m else TEAL if "-3" in m else BLUE
         lb = O.groupby("model").agg(mean=("score", "mean"), ran=("ok", "sum"), n=("score", "size"), att=("attempts", "mean")).sort_values("mean")
