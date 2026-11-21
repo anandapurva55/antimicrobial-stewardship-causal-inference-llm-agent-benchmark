@@ -120,7 +120,7 @@ if len(ALL):
     # 6c/6d: comparison across models, original prompt only
     O = ALL[(ALL.cond == "original") & (ALL.trial < 5)]  # leaderboard: trials 0 to 4 of every model
     if O.model.nunique() > 1:
-        fam = lambda m: GREY if "2.5" in m else TEAL if "-3" in m else BLUE
+        fam = lambda m: PURPLE if "2.5" in m else TEAL if "-3" in m else BLUE
         lb = O.groupby("model").agg(mean=("score", "mean"), ran=("ok", "sum"), n=("score", "size"), att=("attempts", "mean")).sort_values("mean")
         fig, ax = plt.subplots(figsize=(9, 0.6 * len(lb) + 1.6))
         ax.barh(lb.index, lb["mean"], color=[fam(m) for m in lb.index], height=.62)
@@ -130,7 +130,7 @@ if len(ALL):
         ax.set_xlim(0, 21); ax.set_xticks(range(0, 15, 2)); ax.set_xlabel("Mean score over 5 trials (of 14 tests)")
         ax.set_title(f"Leaderboard: 5 trials per model, original prompt (higher is better)")
         from matplotlib.patches import Patch
-        ax.legend(handles=[Patch(color=c, label=l) for l, c in (("Gemini 2.5", GREY), ("Gemini 3.x", TEAL), ("Gemini 4", BLUE))],
+        ax.legend(handles=[Patch(color=c, label=l) for l, c in (("Gemini 2.5", PURPLE), ("Gemini 3.x", TEAL), ("Gemini 4", BLUE))],
                   frameon=False, loc="lower right", fontsize=8.5); fig.tight_layout(); fig.savefig(DOCS_DIR / "model_leaderboard.png"); plt.close(fig)
 
         order = list(O.groupby("model").score.mean().sort_values().index)
