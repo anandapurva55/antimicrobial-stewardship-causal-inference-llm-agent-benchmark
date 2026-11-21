@@ -16,9 +16,9 @@
 ![Synthetic data](docs/images/badges/synthetic.svg)
 ![License](docs/images/badges/license.svg)
 
-This repository measures how well a large language model (LLM) can act as a data scientist on a causal inference problem. The problem is to estimate the effect of an Antimicrobial Stewardship Program (ASP) on antibiotic use across 15 hospitals that adopted the program in different years. The LLM receives a description of the data and a task, writes Python code, runs it, reads its own errors, and fixes the code. Its final results are then scored by 14 automated tests.
+This repository measures how well six Gemini models (**gemini-2.5-pro**, **gemini-3.8-flash**, **gemini-4-argon**, **gemini-4-carbon**, **gemini-4-hydrogen** and **gemini-4-neon**) can act as a data scientist on a **causal inference** problem. The problem is to estimate the effect of an **Antimicrobial Stewardship Program** (**ASP**) on antibiotic use across 15 hospitals that adopted the program in different years. Each model receives a description of the data and a task, writes **Python** code, runs it, reads its own errors, and fixes the code. Its final results are then scored by 14 automated tests.
 
-The data are synthetic, so the true effects are known and every estimate can be checked against the truth. An expert reference solution, called the golden solution, passes all 14 tests. Six Gemini models were evaluated with the same protocol.
+The data are **synthetic**, so the true effects are known and every estimate can be checked against the truth. An expert reference solution, called the **golden solution**, passes all 14 tests. All six models were evaluated with the same protocol.
 
 | 6 | 14 | 3 of 6 | -2.96 | -2.58 | -3.18 |
 |:---:|:---:|:---:|:---:|:---:|:---:|
@@ -46,16 +46,16 @@ The data are synthetic, so the true effects are known and every estimate can be 
 
 ## Problem and significance
 
-Antimicrobial resistance is classified by the World Health Organization as one of the ten greatest global public health threats. An Antimicrobial Stewardship Program is a hospital policy that controls how antibiotics are prescribed: it restricts broad-spectrum drugs, shortens treatment courses and reduces infections such as *Clostridioides difficile*. Hospitals choose whether and when to adopt a program, and better-resourced hospitals tend to adopt earlier and to have better outcomes for other reasons. A simple comparison of hospitals with and without a program therefore mixes the effect of the program with the effect of the hospital.
+**Antimicrobial resistance** is classified by the World Health Organization as one of the ten greatest global public health threats. An **Antimicrobial Stewardship Program** is a hospital policy that controls how antibiotics are prescribed: it restricts broad-spectrum drugs, shortens treatment courses and reduces infections such as *Clostridioides difficile*. Hospitals choose whether and when to adopt a program, and better-resourced hospitals tend to adopt earlier and to have better outcomes for other reasons. A simple comparison of hospitals with and without a program therefore mixes the effect of the program with the effect of the hospital. This mixing is called **confounding**.
 
 A correct analysis needs four methods that depend on each other:
 
-1. **Survival analysis**, because some patients have not yet improved when follow-up ends (right-censored patients) and cannot be treated as failures.
+1. **Survival analysis**, because some patients have not yet improved when follow-up ends (**right-censored** patients) and cannot be treated as failures.
 2. **Difference-in-differences**, because adoption is staggered across years and a before-and-after comparison against hospitals that never adopted is needed.
 3. **Heterogeneous treatment effect estimation**, because the average effect can hide patient groups that benefit more.
 4. **Mixed-effects modelling**, because patients in the same hospital are not independent of each other.
 
-A task that needs all four, with one consistent primary outcome, tests whether an LLM can plan and carry out a multi-step analysis, not only run one method.
+A task that needs all four, with one consistent primary outcome, tests whether a model can plan and carry out a multi-step analysis, not only run one method.
 
 ## Quickstart
 
@@ -96,30 +96,30 @@ The golden solution (`golden_solution.py`, also available as `golden_notebook.ip
 
 ### 1. Survival analysis
 
-* **Kaplan-Meier estimator** (lifelines) of the probability that a patient has not yet improved, separately for patients under ASP and not under ASP. Censored patients stay in the risk set until their censoring time.
-* **Cox proportional hazards model** (lifelines) of `time_to_improvement` with `asp_active` and patient covariates (age, severity, comorbidity score, immunocompromise, sex, infection type and ICU ward). The model is fitted by maximising the partial likelihood. The standard error uses the robust sandwich variance with observations grouped by `hospital_id`, so patients from the same hospital are not counted as independent.
-* **Proportional hazards check**: a test on the scaled Schoenfeld residuals (`proportional_hazard_test` with the rank time transform), which gives one p-value per covariate.
+* **Kaplan-Meier estimator** (**lifelines**) of the probability that a patient has not yet improved, separately for patients under ASP and not under ASP. Censored patients stay in the risk set until their censoring time.
+* **Cox proportional hazards model** (**lifelines**) of `time_to_improvement` with `asp_active` and patient covariates (age, severity, comorbidity score, immunocompromise, sex, infection type and ICU ward). The model is fitted by maximising the **partial likelihood**. The standard error uses the **robust sandwich variance** with observations grouped by `hospital_id`, so patients from the same hospital are not counted as independent.
+* **Proportional hazards check**: a test on the scaled **Schoenfeld residuals** (`proportional_hazard_test` with the rank time transform), which gives one p-value per covariate.
 
 ### 2. Difference-in-differences
 
 * A **hospital-year panel** of mean `antibiotic_duration` (15 hospitals times 6 years, 90 rows).
-* **Two-way fixed effects (TWFE)** regression (linearmodels `PanelOLS`) with hospital and year effects and standard errors clustered by hospital. With staggered adoption and effects that change over time, TWFE compares already-treated hospitals with newly treated ones, so it can be biased. It is reported as a comparison.
+* **Two-way fixed effects** (**TWFE**) regression (**linearmodels** `PanelOLS`) with hospital and year effects and standard errors clustered by hospital. With staggered adoption and effects that change over time, TWFE compares already-treated hospitals with newly treated ones, so it can be biased. It is reported as a comparison.
 * **Callaway-Sant'Anna estimator**, the headline estimate. For each adoption cohort *g* and year *t*, it computes the change in mean outcome of the cohort from the year before adoption (*g* minus 1) to *t*, minus the same change in never-adopting hospitals. These cohort-year effects are averaged with the number of treated patients as weights, by years since adoption (the event study) and over all post-adoption years (the overall ATT).
 * **Hospital-cluster bootstrap**: 1,000 resamples of hospitals within each group give 95% confidence intervals.
-* **Pre-trend test**: the event study includes the pre-adoption years (up to four years before adoption). The parallel-trends check is the average of all pre-adoption coefficients, with its bootstrap confidence interval and p-value.
+* **Pre-trend test**: the event study includes the pre-adoption years (up to four years before adoption). The **parallel-trends** check is the average of all pre-adoption coefficients, with its bootstrap confidence interval and p-value.
 
 ### 3. Heterogeneous treatment effects
 
 * **T-learner**: two outcome models, one fitted on treated patients and one on untreated patients. The individual effect is the difference between their predictions.
-* **X-learner**: uses the two outcome models to impute individual effects for each group, fits models of those imputed effects, and combines them with weights from a **propensity model** (a classifier for treatment), clipped to the range 0.05 to 0.95.
-* Base models are scikit-learn `HistGradientBoostingRegressor` (150 iterations, depth 4, learning rate 0.06) and `HistGradientBoostingClassifier`. Covariates include patient characteristics, hospital indicators and year, because treatment varies by hospital and year.
+* **X-learner**: uses the two outcome models to impute individual effects for each group, fits models of those imputed effects, and combines them with weights from a **propensity model** (a classifier that predicts treatment), clipped to the range 0.05 to 0.95.
+* Base models are **scikit-learn** `HistGradientBoostingRegressor` (150 iterations, depth 4, learning rate 0.06) and `HistGradientBoostingClassifier`. Covariates include patient characteristics, hospital indicators and year, because treatment varies by hospital and year.
 * A **patient-level bootstrap** (30 resamples) gives a confidence interval for the difference in mean effect between patients aged 65 and over and patients under 40.
 
 ### 4. Mixed-effects modelling
 
-* A **linear mixed model** (statsmodels `MixedLM`) of `antibiotic_duration` with a random intercept for each hospital, fitted by restricted maximum likelihood (REML).
-* **Intraclass correlation**: ICC = hospital variance / (hospital variance + residual variance).
-* **Model comparison**: Akaike information criterion (AIC) of the mixed model, fitted by maximum likelihood, against an ordinary least squares model with the same fixed effects.
+* A **linear mixed model** (**statsmodels** `MixedLM`) of `antibiotic_duration` with a random intercept for each hospital, fitted by **restricted maximum likelihood** (**REML**).
+* **Intraclass correlation** (**ICC**): ICC = hospital variance / (hospital variance + residual variance).
+* **Model comparison**: **Akaike information criterion** (**AIC**) of the mixed model, fitted by maximum likelihood, against an ordinary least squares model with the same fixed effects.
 
 ## Golden solution results
 
@@ -171,9 +171,9 @@ S2 checks that the reported standard error is plausible for a hospital-clustered
 
 1. **Prompt.** `asp_common.build_prompt` builds the prompt from the data: the dataset shape, column types, the first five rows and basic counts, the four objectives, the constraints, and the list of 17 required output variables with their meanings.
 2. **Prompt conditions.** In the `original` condition, the mixed-model objective does not name the outcome. In the `pinned` condition, the prompt states that `antibiotic_duration` is the primary outcome for the difference-in-differences, treatment-effect and mixed-model objectives.
-3. **Attempts.** The model writes Python code. The code runs in a separate process (`python -I`, 900-second limit). If it raises an error, the error text is sent back and the model writes corrected code. There are at most 5 attempts per trial.
-4. **Model settings.** The model name is fixed, and there is no fallback to another model. The temperature is 0.7, and the random seed equals the trial number. Transient API errors are retried up to 5 times with increasing waiting time. These retries are not counted as attempts.
-5. **Scoring.** The required outputs are saved as JSON and scored by `asp_tests.py`. A trial has *valid results* when the code ran and defined at least one required output. Trials without valid results score 0 and are included in all mean scores.
+3. **Attempts.** The model writes **Python** code. The code runs in a separate process (`python -I`, 900-second limit). If it raises an error, the error text is sent back and the model writes corrected code. There are at most 5 attempts per trial.
+4. **Model settings.** The model name is fixed, and there is no fallback to another model. The temperature is 0.7, and the random seed equals the trial number. Transient **API** errors are retried up to 5 times with increasing waiting time. These retries are not counted as attempts.
+5. **Scoring.** The required outputs are saved as **JSON** and scored by `asp_tests.py`. A trial has *valid results* when the code ran and defined at least one required output. Trials without valid results score 0 and are included in all mean scores.
 6. **Stored evidence.** For every trial, `runs/<model>/<prompt>/trial_<k>/` contains the prompt, each attempt's code and error output, the model name returned by the API, the results and the per-test scores.
 
 ## Model comparison
