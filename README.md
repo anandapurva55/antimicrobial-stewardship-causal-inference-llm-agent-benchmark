@@ -38,7 +38,7 @@ The data are **synthetic**, so the true effects are known and every estimate can
 5. [Golden solution results](#golden-solution-results)
 6. [The 14 tests](#the-14-tests)
 7. [Agent evaluation protocol](#agent-evaluation-protocol)
-8. [Model comparison](#model-comparison)
+8. [Leaderboard](#leaderboard)
 9. [Effect of stating the primary outcome](#effect-of-stating-the-primary-outcome)
 10. [Testing and continuous integration](#testing-and-continuous-integration)
 11. [Libraries and tools](#libraries-and-tools)
@@ -181,9 +181,9 @@ S2 checks that the reported standard error is plausible for a hospital-clustered
 5. **Scoring.** The required outputs are saved as **JSON** and scored by `asp_benchmark.scoring`. A trial has *valid results* when the code ran and defined at least one required output. Trials without valid results score 0 and are included in all mean scores.
 6. **Stored evidence.** For every trial, `results/runs/<model>/<prompt>/trial_<k>/` contains the prompt, each attempt's code and error output, the model name returned by the API, the results and the per-test scores.
 
-## Model comparison
+## Leaderboard
 
-Six Gemini models were evaluated on the `original` prompt with 5 trials each: trials 0 to 4 of every model. This selection was fixed in advance by trial number and not by score. The models are `gemini-2.5-pro`, `gemini-3.8-flash`, and four models named `gemini-4-argon`, `gemini-4-carbon`, `gemini-4-hydrogen` and `gemini-4-neon`. Each trial stores the model it requested (`model_requested`) and the name the API returned (`model_reported`) in its `meta.json`, and the two match in all 45 stored trials. `python evaluation/list_models.py` lists the models your API key can use, and the [Gemini models documentation](https://ai.google.dev/gemini-api/docs/models) describes the model families.
+The leaderboard compares six Gemini models on the `original` prompt with 5 trials each: trials 0 to 4 of every model. This selection was fixed in advance by trial number and not by score. The models are `gemini-2.5-pro`, `gemini-3.8-flash`, and four models named `gemini-4-argon`, `gemini-4-carbon`, `gemini-4-hydrogen` and `gemini-4-neon`. Each trial stores the model it requested (`model_requested`) and the name the API returned (`model_reported`) in its `meta.json`, and the two match in all 45 stored trials. `python evaluation/list_models.py` lists the models your API key can use, and the [Gemini models documentation](https://ai.google.dev/gemini-api/docs/models) describes the model families.
 
 | Rank | Model | Mean score (all trials) | 95% CI of mean score | Valid results | Mean score (valid trials) | Mean attempts | ICC test (S12) | Cox clustered (code check) |
 |:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -294,7 +294,7 @@ antimicrobial-stewardship-causal-inference-llm-agent-benchmark/
 ├── results/
 │   ├── golden_results.json      # outputs of the golden solution
 │   ├── summary.json             # statistics for every set of trials
-│   ├── comparison.md            # model comparison table
+│   ├── comparison.md            # leaderboard and prompt-experiment tables
 │   └── runs/                    # prompts, code, errors and scores for every trial
 ├── tests/                       # pytest tests for the generator, the scoring and the code runner
 ├── docs/                        # figures and badges used in this README
@@ -339,7 +339,7 @@ python3.12 -m venv .venv
 
 ## Limitations
 
-* The model comparison uses 5 trials per model. This gives a clear separation between the weakest and strongest models, but not between models whose scores are close.
+* The leaderboard uses 5 trials per model. This gives a clear separation between the weakest and strongest models, but not between models whose scores are close.
 * The golden solution, `data/ground_truth.json` and the prompts are public, so a future model could have seen them. A fresh dataset can be generated with `python -m asp_benchmark.data_generation --seed 7` after setting the environment variables `ASP_DATA_DIR` and `ASP_RESULTS_DIR` to other folders, which leaves the committed files untouched. The golden solution scores 14 out of 14 on seeds 7 and 2026. The Gemini trials were run on the committed seed (42) only.
 * Two tests were loosened after the first runs because they were stricter than the prompt. S2 originally required the Cox standard error to match one covariate set within 15%, and S3 originally required at least 5 covariates, which the prompt does not state. The stored trials were rescored with the final tests. The S3 change moves `gemini-3.8-flash` from 13 to 14 and therefore changes the ranking.
 * The test suite has a ceiling. Four models reach 14 out of 14 in every trial, so the suite cannot rank them against each other. Harder objectives or a stricter set of tests would be needed to separate them.
