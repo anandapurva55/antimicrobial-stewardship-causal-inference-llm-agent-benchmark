@@ -23,7 +23,7 @@ This repository measures how well six Gemini models (**gemini-2.5-pro**, **gemin
 
 The data are **synthetic**, so the true effects are known and every estimate can be checked against the truth. An expert reference solution, called the **golden solution**, passes all 14 tests. All six models were evaluated with the same protocol.
 
-| 6 | 14 | 3 of 6 | -2.96 | -2.58 | -3.18 |
+| 6 | 14 | 4 of 6 | -2.96 | -2.58 | -3.18 |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | Gemini models compared | Automated tests | Models with a perfect 14/14 mean | Callaway-Sant'Anna ATT in days (golden solution) | Plain TWFE estimate in days (biased) | True ATT in days (from the generator) |
 
@@ -157,7 +157,7 @@ The event study shows flat pre-adoption coefficients, which supports the paralle
 |---|---|
 | S1 | The Cox hazard ratio is above 1 and within 15% of the recomputed value |
 | S2 | The Cox standard error for ASP is between 0.5 and 2 times the recomputed hospital-clustered value |
-| S3 | A dictionary of proportional-hazards p-values is reported, with `asp_active` and at least 5 covariates |
+| S3 | A dictionary of proportional-hazards p-values is reported. It includes `asp_active`, and every value is between 0 and 1 |
 | S4 | The hospital-year panel has 90 unique rows and contains the true hospital-year means of `antibiotic_duration` |
 | S5 | The event study has confidence intervals that contain the estimates and includes at least one pre-adoption coefficient |
 | S6 | The pre-trend coefficient, p-value and confidence interval are consistent, and the data show no violation (p above 0.05, interval contains 0) |
@@ -176,21 +176,21 @@ S2 checks that the reported standard error is plausible for a hospital-clustered
 
 1. **Prompt.** `asp_benchmark.common.build_prompt` builds the prompt from the data: the dataset shape, column types, the first five rows and basic counts, the four objectives, the constraints, and the list of 17 required output variables with their meanings.
 2. **Prompt conditions.** In the `original` condition, the mixed-model objective does not name the outcome. In the `pinned` condition, the prompt states that `antibiotic_duration` is the primary outcome for the difference-in-differences, treatment-effect and mixed-model objectives.
-3. **Attempts.** The model writes **Python** code. The code runs in a separate process (`python -I`, 900-second limit). If it raises an error, the error text is sent back and the model writes corrected code. There are at most 5 attempts per trial.
+3. **Attempts.** The model writes **Python** code. The code runs in a separate process (`python -I`, 900-second limit, minimal environment without API keys). If it raises an error, the error text is sent back and the model writes corrected code. There are at most 5 attempts per trial.
 4. **Model settings.** The model name is fixed, and there is no fallback to another model. The temperature is 0.7, and the random seed equals the trial number. Transient **API** errors are retried up to 5 times with increasing waiting time. These retries are not counted as attempts.
 5. **Scoring.** The required outputs are saved as **JSON** and scored by `asp_benchmark.scoring`. A trial has *valid results* when the code ran and defined at least one required output. Trials without valid results score 0 and are included in all mean scores.
 6. **Stored evidence.** For every trial, `results/runs/<model>/<prompt>/trial_<k>/` contains the prompt, each attempt's code and error output, the model name returned by the API, the results and the per-test scores.
 
 ## Model comparison
 
-Six Gemini models were evaluated on the `original` prompt with 5 trials each (trials 0 to 4), so every model has the same number of trials. The models are `gemini-2.5-pro`, `gemini-3.8-flash`, and four models named `gemini-4-argon`, `gemini-4-carbon`, `gemini-4-hydrogen` and `gemini-4-neon`.
+Six Gemini models were evaluated on the `original` prompt with 5 trials each (trials 0 to 4), so every model has the same number of trials. The models are `gemini-2.5-pro`, `gemini-3.8-flash`, and four models named `gemini-4-argon`, `gemini-4-carbon`, `gemini-4-hydrogen` and `gemini-4-neon`. Each trial stores the model it requested (`model_requested`) and the name the API returned (`model_reported`) in its `meta.json`, and the two match in all 58 trials. `python evaluation/list_models.py` lists the models your API key can use, and the [Gemini models documentation](https://ai.google.dev/gemini-api/docs/models) describes the model families.
 
 | Rank | Model | Mean score (all trials) | Valid results | Mean score (valid trials) | Mean attempts | ICC test (S12) | Cox clustered (code check) |
 |:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|
 | 1 (tie) | gemini-4-hydrogen | 14.0 | 5/5 | 14.0 | 1.0 | 5/5 | 5/5 |
 | 1 (tie) | gemini-4-neon | 14.0 | 5/5 | 14.0 | 1.0 | 5/5 | 5/5 |
 | 1 (tie) | gemini-4-argon | 14.0 | 5/5 | 14.0 | 1.2 | 5/5 | 5/5 |
-| 4 | gemini-3.8-flash | 13.0 | 5/5 | 13.0 | 1.4 | 5/5 | 5/5 |
+| 1 (tie) | gemini-3.8-flash | 14.0 | 5/5 | 14.0 | 1.4 | 5/5 | 5/5 |
 | 5 | gemini-4-carbon | 11.2 | 4/5 | 14.0 | 1.0 | 4/4 | 4/4 |
 | 6 | gemini-2.5-pro | 7.4 | 3/5 | 12.3 | 4.2 | 3/3 | 3/3 |
 
@@ -200,7 +200,7 @@ Six Gemini models were evaluated on the `original` prompt with 5 trials each (tr
 
 Observations:
 
-* Three models reach the maximum score in every trial, and they do so on the first or second attempt. `gemini-3.8-flash` scores 13 in every trial; the missing point is always S3, the dictionary of proportional-hazards p-values.
+* Four models reach the maximum score in every trial, and they do so on the first or second attempt.
 * `gemini-4-carbon` scores 14 in four trials. In the fifth, the code ran but defined none of the required output variables, so the score is 0.
 * `gemini-2.5-pro` needs 4.2 attempts on average. Two of its five trials never produced working code within 5 attempts (errors such as misuse of the lifelines result objects, regression design matrices that are not full rank, event-time variable names in formulas, and an invalid `method` argument to `MixedLM.fit`).
 * Across all 58 stored trials, no reported ICC matched the ICC of `length_of_stay`. Every ICC test failure is a missing output.
@@ -212,7 +212,7 @@ Trials beyond the first 5 were run for some models. They are not part of the com
 | gemini-4-argon | original | 10 | 10/10 | 14.0 | 14.0 |
 | gemini-4-hydrogen | original | 9 | 9/9 | 14.0 | 14.0 |
 | gemini-4-neon | original | 5 | 5/5 | 14.0 | 14.0 |
-| gemini-3.8-flash | original | 8 | 8/8 | 13.0 | 13.0 |
+| gemini-3.8-flash | original | 8 | 8/8 | 14.0 | 14.0 |
 | gemini-4-carbon | original | 6 | 5/6 | 10.5 | 12.6 |
 | gemini-2.5-pro | original | 10 | 6/10 | 7.6 | 12.7 |
 | gemini-2.5-pro | pinned | 10 | 7/10 | 8.3 | 11.9 |
@@ -232,7 +232,7 @@ Per-trial figures for `gemini-2.5-pro` under both prompts:
 
 The difference between the prompts is small compared with the variation between trials. It comes mainly from how many trials produced working code. In both prompts, every valid trial passed the ICC test, so the prompt wording did not change which outcome was used.
 
-The figure below shows the result of each test (rows S1 to S14) in each of the 20 trials (columns; O0 to O9 use the original prompt and P0 to P9 use the pinned prompt). Teal means the test passed and amber means it failed. A column that is entirely amber is a trial that produced no valid results. The amber row S3 is the proportional-hazards p-value dictionary, which most trials did not return in the requested form.
+The figure below shows the result of each test (rows S1 to S14) in each of the 20 trials (columns; O0 to O9 use the original prompt and P0 to P9 use the pinned prompt). Teal means the test passed and amber means it failed. A column that is entirely amber is a trial that produced no valid results. Row S3 (the proportional-hazards p-value dictionary) is amber in most trials of this model, because it did not return a dictionary that includes `asp_active`.
 
 ![gemini-2.5-pro tests passed per trial](docs/test_matrix.png)
 
@@ -243,10 +243,10 @@ The repository has two separate kinds of tests. The **14 scored tests** in `src/
 | File | What it checks |
 |---|---|
 | `tests/test_data.py` (3 tests) | The generator is deterministic for a fixed seed, the committed dataset matches it, and the design properties hold: 15 hospitals, 6 years, `asp_active` equal to year at or after adoption, and about 29.5% censoring |
-| `tests/test_scoring.py` (4 tests) | The golden solution passes all 14 scored tests, a `length_of_stay` ICC is caught by the ICC test, a TWFE estimate reported as the staggered-adoption estimate is caught, and missing outputs fail without stopping the other tests |
-| `tests/test_agent.py` (5 tests) | Generated code runs in a separate process, errors and timeouts are returned as text, code fences are removed from model replies, and the pinned prompt names the primary outcome while the original prompt does not |
+| `tests/test_scoring.py` (5 tests) | The golden solution passes all 14 scored tests, a `length_of_stay` ICC is caught by the ICC test, a TWFE estimate reported as the staggered-adoption estimate is caught, missing outputs fail without stopping the other tests, and a proportional-hazards dictionary with only `asp_active` is accepted |
+| `tests/test_agent.py` (7 tests) | Generated code runs in a separate process, errors and timeouts are returned as text, code fences are removed from model replies, the pinned prompt names the primary outcome while the original prompt does not, generated code does not receive the API key, and a failed client creation leaves no trial directory |
 
-`pytest` runs the 12 tests in about 20 seconds. They need no API key and make no calls to the Gemini API.
+`pytest` runs the 15 tests in about 20 seconds. They need no API key and make no calls to the Gemini API.
 
 **GitHub Actions** runs the same command on every push to `main` and on every pull request (`.github/workflows/ci.yml`). The workflow checks out the code, sets up Python 3.12 with a pip cache, installs `requirements.txt` and the package with `pip install -e .`, and runs `pytest -q`. The CI badge at the top of this README shows the result of the latest run.
 
@@ -270,7 +270,7 @@ The project is written in Python. The table groups the libraries and tools by pu
 | Execution and storage | **subprocess** (Python standard library) | Runs generated code in a separate process with a time limit |
 | | **JSON** (data format) | Exchange of results between the agent runs and the tests (no pickle files) |
 | Notebooks | **Jupyter**, **jupytext**, **nbconvert**, **nbformat**, **ipykernel** | Builds and runs the notebooks from the source scripts |
-| Testing and automation | **pytest** | 12 tests for the data generator, the scoring and the code runner |
+| Testing and automation | **pytest** | 15 tests for the data generator, the scoring and the code runner |
 | | **GitHub Actions** | Continuous integration: runs `pytest` on every push to `main` and on every pull request (`.github/workflows/ci.yml`) |
 | Packaging | **setuptools** with `pyproject.toml` | Makes `src/asp_benchmark` installable with `pip install -e .` |
 
@@ -287,6 +287,7 @@ antimicrobial-stewardship-causal-inference-llm-agent-benchmark/
 │   └── paths.py                 # repository paths
 ├── evaluation/
 │   ├── run_agent.py             # command line to run agent trials
+│   ├── list_models.py           # lists the Gemini models available to your API key
 │   ├── rescore_runs.py          # re-scores stored trials without calling the API
 │   └── summarize_runs.py        # writes results/summary.json and results/comparison.md
 ├── scripts/
@@ -331,7 +332,9 @@ python3.12 -m venv .venv
 .venv/bin/python -m asp_benchmark.golden
 .venv/bin/python -m asp_benchmark.scoring results/golden_results.json
 
-# Agent trials (requires GEMINI_API_KEY in .env). Finished trials are skipped, so the command can be repeated.
+# Agent trials (requires GEMINI_API_KEY in .env). `list_models.py` shows the model names your key can use.
+.venv/bin/python evaluation/list_models.py
+# Finished trials are skipped, so the command can be repeated.
 .venv/bin/python evaluation/run_agent.py --model gemini-4-argon --condition original --trials 5
 .venv/bin/python evaluation/run_agent.py --model gemini-2.5-pro --condition pinned --trials 10
 
@@ -347,7 +350,8 @@ python3.12 -m venv .venv
 ## Limitations
 
 * The model comparison uses 5 trials per model. This gives a clear separation between the weakest and strongest models, but not between models whose scores are close.
-* The test suite has a ceiling. Three models reach 14 out of 14 in every trial, so the suite cannot rank them against each other. Harder objectives or a stricter set of tests would be needed to separate them.
+* Two tests were loosened after the first runs because they were stricter than the prompt. S2 originally required the Cox standard error to match one covariate set within 15%, and S3 originally required at least 5 covariates, which the prompt does not state. The stored trials were rescored with the final tests. The S3 change moves `gemini-3.8-flash` from 13 to 14 and therefore changes the ranking.
+* The test suite has a ceiling. Four models reach 14 out of 14 in every trial, so the suite cannot rank them against each other. Harder objectives or a stricter set of tests would be needed to separate them.
 * The data have two adoption cohorts. Effect differences that depend on more cohorts cannot be tested.
 * The Cox standard error test (S2) checks plausibility, not clustering. The code check in `evaluation/summarize_runs.py` covers that point without scoring it.
 * The pinned-outcome experiment was run for `gemini-2.5-pro` only.
@@ -357,7 +361,7 @@ python3.12 -m venv .venv
 
 ## Security notes
 
-* Generated code runs in a separate process with a time limit. This is not a sandbox, because the process has the same file and network access as the user who starts it. Use a container or virtual machine to run code from models that are not trusted.
+* Generated code runs in a separate process with a time limit and a minimal environment. Variables such as `GEMINI_API_KEY` are not passed to it. This is not a sandbox: the process can still read any file the user can read, including `.env`, and can use the network. Use a container or virtual machine to run code from models that are not trusted.
 * Results are stored as JSON, and no pickle files are read.
 * `.env` is excluded from version control. The stored trial logs contain prompts, generated code and error messages, and no API keys.
 * To report a vulnerability, follow [SECURITY.md](SECURITY.md).

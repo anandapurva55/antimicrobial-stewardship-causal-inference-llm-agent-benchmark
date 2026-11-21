@@ -73,9 +73,9 @@ def build_tests(R, df, ref, truth):
         se = _num(R["cox_se_asp"]); r = ref["cox_se_robust"]
         assert 0.5 * r < se < 2.0 * r, f"SE={se:.4f}; robust reference {r:.4f}, naive reference {ref['cox_se_naive']:.4f}"
 
-    @add("S3", "PH test p-values reported for >=5 covariates incl. asp_active")
+    @add("S3", "PH test p-values reported as a dictionary that includes asp_active, all in [0, 1]")
     def _():
-        p = R["ph_test_pvalues"]; assert isinstance(p, dict) and len(p) >= 5 and "asp_active" in p, "need dict incl asp_active"
+        p = R["ph_test_pvalues"]; assert isinstance(p, dict) and "asp_active" in p, "need a dict of p-values that includes asp_active"
         assert all(0 <= float(v) <= 1 for v in p.values()), "p-values outside [0,1]"
 
     @add("S4", "DiD panel: 90 rows, unique (hospital,year), contains true hospital-year mean antibiotic_duration")

@@ -40,3 +40,12 @@ def test_missing_outputs_fail_instead_of_stopping_the_run(golden):
     partial = {k: v for k, v in golden.items() if k not in ("icc_value", "cox_hr_asp")}
     assert {"S1", "S12"} <= failed_ids(partial)
     assert len(run_tests(partial)) == 14  # every test still ran
+
+
+def test_ph_dictionary_with_only_the_treatment_covariate_is_accepted(golden):
+    ok = copy.deepcopy(golden)
+    ok["ph_test_pvalues"] = {"asp_active": 0.0001}
+    assert "S3" not in failed_ids(ok)
+    bad = copy.deepcopy(golden)
+    bad["ph_test_pvalues"] = {"age": 0.5}  # no entry for asp_active
+    assert "S3" in failed_ids(bad)

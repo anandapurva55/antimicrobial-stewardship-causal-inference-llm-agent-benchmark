@@ -16,9 +16,9 @@
   },
   {
    "id": "S3",
-   "desc": "PH test p-values reported for >=5 covariates incl. asp_active",
+   "desc": "PH test p-values reported as a dictionary that includes asp_active, all in [0, 1]",
    "passed": false,
-   "msg": "AssertionError: need dict incl asp_active"
+   "msg": "AssertionError: need a dict of p-values that includes asp_active"
   },
   {
    "id": "S4",

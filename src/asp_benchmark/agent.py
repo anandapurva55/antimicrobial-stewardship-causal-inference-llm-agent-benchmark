@@ -73,13 +73,23 @@ class Gemini:
         return r.text or ""
 
 
+# The generated code receives only these environment variables, so API keys loaded from `.env` are not
+# passed to it. This limits accidental exposure; it does not stop code from reading files such as `.env`.
+CHILD_ENV_KEYS = ("PATH", "HOME", "LANG", "LC_ALL", "TMPDIR", "SYSTEMROOT")
+
+
+def child_environment():
+    return {k: os.environ[k] for k in CHILD_ENV_KEYS if k in os.environ}
+
+
 def run_generated_code(code, tdir, timeout):
     """Run `code` (with the prelude and epilogue) in a separate Python process inside `tdir`.
     Returns the error text, or an empty string when the code ran without error."""
     script = os.path.join(tdir, "_run.py")
     open(script, "w").write(PRELUDE + code + EPILOGUE)
     try:
-        p = subprocess.run([sys.executable, "-I", "_run.py"], cwd=tdir, capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run([sys.executable, "-I", "_run.py"], cwd=tdir, capture_output=True, text=True, timeout=timeout,
+                           env=child_environment())
         err = p.stderr[-3000:] if p.returncode else ""
     except subprocess.TimeoutExpired:
         err = f"TimeoutError: code exceeded {timeout}s"
@@ -93,12 +103,12 @@ def trial_dir(backend, model, condition, k):
 
 
 def run_trial(backend, model, condition, k, temperature, max_attempts, exec_timeout):
-    tdir = str(trial_dir(backend, model, condition, k))
-    os.makedirs(tdir, exist_ok=True)
     df = pd.read_csv(CSV)
     prompt = build_prompt(df, condition)
+    agent = Gemini(model, temperature, k)  # fails here, before any directory is created, if the model or key is unusable
+    tdir = str(trial_dir(backend, model, condition, k))
+    os.makedirs(tdir, exist_ok=True)
     open(os.path.join(tdir, "prompt.txt"), "w").write(prompt)
-    agent = Gemini(model, temperature, k)
     meta = dict(backend=backend, model_requested=model, condition=condition, trial=k, seed=k, temperature=temperature,
                 started=time.strftime("%Y-%m-%dT%H:%M:%S"), attempts=0, executed_ok=False, errors=[])
     msg = prompt
