@@ -209,3 +209,5 @@ print(f"ICC={icc_value:.3f}  RE var={random_effect_variance:.3f}  AIC mixed {mix
 
 # %%
 print("saved:", save_results(GOLDEN_RESULTS, globals()))
+# Values the figures need that are not part of the required outputs
+json.dump({"did_att_ci": [float(ci[0]), float(ci[1])]}, open(RESULTS_DIR / "golden_extras.json", "w"))

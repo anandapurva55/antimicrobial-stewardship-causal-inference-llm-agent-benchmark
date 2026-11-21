@@ -293,6 +293,7 @@ antimicrobial-stewardship-causal-inference-llm-agent-benchmark/
 │   └── agent_notebook.ipynb     # runs one agent trial
 ├── results/
 │   ├── golden_results.json      # outputs of the golden solution
+│   ├── golden_extras.json       # interval of the headline estimate, used by a figure
 │   ├── summary.json             # statistics for every set of trials
 │   ├── comparison.md            # leaderboard and prompt-experiment tables
 │   └── runs/                    # prompts, code, errors and scores for every trial
