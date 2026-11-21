@@ -1,7 +1,8 @@
 # %% [markdown]
 # # Multi-Hospital ASP Causal Study: Expert Solution
 # Primary outcome throughout: **`antibiotic_duration`** (survival uses `time_to_improvement`).
-# Source of truth for `golden_notebook.ipynb` (built with `build_notebooks.py`).
+# Source of truth for `notebooks/golden_notebook.ipynb` (built with `scripts/build_notebooks.py`).
+# Run as a script with: python -m asp_benchmark.golden
 
 # %%
 import json, os, warnings
@@ -14,11 +15,12 @@ from lifelines import CoxPHFitter, KaplanMeierFitter
 from lifelines.statistics import proportional_hazard_test, logrank_test
 from linearmodels.panel import PanelOLS
 from sklearn.ensemble import HistGradientBoostingRegressor, HistGradientBoostingClassifier
-from asp_common import save_results
+from asp_benchmark.common import save_results
+from asp_benchmark.paths import CSV, GOLDEN_RESULTS, RESULTS_DIR, TRUTH
 warnings.filterwarnings("ignore")
 OUTCOME = "antibiotic_duration"
-df = pd.read_csv("asp_study_data.csv")
-truth = json.load(open("ground_truth.json")) if os.path.exists("ground_truth.json") else {}
+df = pd.read_csv(CSV)
+truth = json.load(open(TRUTH)) if TRUTH.exists() else {}
 assert df.shape[0] > 10_000 and df.hospital_id.nunique() == 15 and set(df.year) == set(range(2017, 2023))
 df["sex_binary"] = (df.sex == "M").astype(int)
 for k in ("bloodstream", "respiratory", "urinary"):
@@ -48,7 +50,7 @@ fig, ax = plt.subplots(figsize=(7, 5))
 for g, lab in ((1, "ASP active"), (0, "No ASP")):
     m = df.asp_active == g
     KaplanMeierFitter(label=lab).fit(df.time_to_improvement[m], df.event_observed[m]).plot_survival_function(ax=ax)
-ax.set_title("Kaplan-Meier: not yet improved"); plt.savefig("km_curves.png", dpi=100); plt.close()
+ax.set_title("Kaplan-Meier: not yet improved"); plt.savefig(RESULTS_DIR / "km_curves.png", dpi=100); plt.close()
 
 # %% [markdown]
 # ## 2. Difference-in-differences (staggered adoption)
@@ -136,7 +138,7 @@ fig, ax = plt.subplots(figsize=(8, 4.5))
 ax.errorbar(event_study.event_time, event_study.coef,
             yerr=[event_study.coef - event_study.ci_low, event_study.ci_high - event_study.coef], fmt="o", capsize=4)
 ax.axhline(0, color="#1f2a44", lw=.8); ax.axvline(-0.5, color="#7b4fd6", ls="--")
-ax.set_title("Event study (Callaway-Sant'Anna, bootstrap 95% CI)"); plt.savefig("event_study.png", dpi=100); plt.close()
+ax.set_title("Event study (Callaway-Sant'Anna, bootstrap 95% CI)"); plt.savefig(RESULTS_DIR / "event_study.png", dpi=100); plt.close()
 
 # %% [markdown]
 # ## 3. Heterogeneous treatment effects
@@ -205,4 +207,4 @@ print(f"ICC={icc_value:.3f}  RE var={random_effect_variance:.3f}  AIC mixed {mix
 # ## 5. Save results (JSON, no pickle)
 
 # %%
-print("saved:", save_results("golden_results.json", globals()))
+print("saved:", save_results(GOLDEN_RESULTS, globals()))

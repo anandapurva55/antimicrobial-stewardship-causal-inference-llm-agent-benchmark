@@ -1,4 +1,4 @@
-# Pinned with Python 3.12. Dev tools (jupytext/nbconvert/ipykernel) are only needed for build_notebooks.py
+# Pinned with Python 3.12. Dev tools (jupytext, nbconvert, ipykernel, pytest) are needed only for building notebooks and running tests
 lifelines==0.30.3
 linearmodels==7.1
 statsmodels==0.15.0
@@ -14,3 +14,4 @@ jupytext==1.19.6
 nbconvert==7.17.2
 nbformat==5.11.1
 ipykernel==7.4.0
+pytest==9.2.0

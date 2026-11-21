@@ -1,6 +1,6 @@
 """Generate the synthetic ASP study dataset and its ground truth.
 
-    python generate_data.py            # writes asp_study_data.csv + ground_truth.json
+    python -m asp_benchmark.data_generation    # writes data/asp_study_data.csv + data/ground_truth.json
 
 Design (everything the benchmark claims is set here, so it can be checked):
 
@@ -20,6 +20,7 @@ Design (everything the benchmark claims is set here, so it can be checked):
 import json
 import numpy as np
 import pandas as pd
+from asp_benchmark.paths import CSV, DATA_DIR, TRUTH
 
 SEED = 42
 YEARS = [2017, 2018, 2019, 2020, 2021, 2022]
@@ -124,9 +125,10 @@ def generate(seed=SEED):
 
 if __name__ == "__main__":
     data, truth = generate()
-    data.to_csv("asp_study_data.csv", index=False)
-    with open("ground_truth.json", "w") as f:
+    DATA_DIR.mkdir(exist_ok=True)
+    data.to_csv(CSV, index=False)
+    with open(TRUTH, "w") as f:
         json.dump(truth, f, indent=2)
-    print(f"wrote asp_study_data.csv {data.shape}; true ATT on treated = {truth['true_att_treated_days']:.3f}")
+    print(f"wrote {CSV} {data.shape}; true ATT on treated = {truth['true_att_treated_days']:.3f}")
     print("censoring rate:", round(1 - data.event_observed.mean(), 3))
     print(data.groupby("year").event_observed.mean().round(3).to_dict())

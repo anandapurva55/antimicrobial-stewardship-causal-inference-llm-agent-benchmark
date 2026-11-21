@@ -1,6 +1,6 @@
-"""Aggregate stored trials into runs/summary.json and runs/comparison.md.
+"""Aggregate stored trials into results/summary.json and results/comparison.md.
 
-    python summarize_runs.py
+    python evaluation/summarize_runs.py
 
 * "Valid results" = the generated code ran and defined at least one of the required outputs.
 * "Cox clustered (code)" is a static check of the final generated script for `cluster_col`; it is not scored.
@@ -11,6 +11,8 @@ import glob
 import json
 import os
 
+from asp_benchmark.paths import RESULTS_DIR, RUNS_DIR
+
 COMPARE_N = 5
 HEADER = ["| Model | Prompt | Trials | Valid results | Mean score (all) | Mean score (valid) | Best | ICC test (S12) | Mean attempts | Cox clustered (code) |",
           "|---|---|---|---|---|---|---|---|---|---|"]
@@ -18,15 +20,15 @@ HEADER = ["| Model | Prompt | Trials | Valid results | Mean score (all) | Mean s
 
 def load():
     rows = C.defaultdict(list)
-    for sp in sorted(glob.glob("runs/*/*/trial_*/score.json")):
+    for sp in sorted(glob.glob(str(RUNS_DIR / "*/*/trial_*/score.json"))):
         d = os.path.dirname(sp)
-        parts = d.split(os.sep)
+        parts = d.split(os.sep)[-3:]  # model directory, prompt condition, trial
         meta = json.load(open(os.path.join(d, "meta.json")))
         final = os.path.join(d, f"attempt_{meta['attempts']}.py")
         rp = os.path.join(d, "results.json")
         meta["valid"] = bool(meta["executed_ok"] and os.path.exists(rp) and json.load(open(rp)))
         meta["clustered"] = os.path.exists(final) and "cluster_col" in open(final).read()
-        rows[(parts[1].replace("gemini__", ""), parts[2])].append((json.load(open(sp)), meta))
+        rows[(parts[0].replace("gemini__", ""), parts[1])].append((json.load(open(sp)), meta))
     return rows
 
 
@@ -50,12 +52,12 @@ def line(model, cond, st):
 
 rows = load()
 summary = {f"{m}/{c}": stats(v) for (m, c), v in rows.items()}
-json.dump(summary, open("runs/summary.json", "w"), indent=1)
+json.dump(summary, open(RESULTS_DIR / "summary.json", "w"), indent=1)
 
 compare = {m: stats([(s, x) for s, x in v if x["trial"] < COMPARE_N]) for (m, c), v in rows.items() if c == "original"}
 ranked = sorted(compare.items(), key=lambda kv: (-kv[1]["mean_all"], kv[1]["attempts"]))
 out = HEADER + [line(m, "original", st) for m, st in ranked]
-open("runs/comparison.md", "w").write("\n".join(out) + "\n")
+open(RESULTS_DIR / "comparison.md", "w").write("\n".join(out) + "\n")
 
 print(f"Equal-n comparison (trials 0-{COMPARE_N - 1}, original prompt)\n" + "\n".join(out))
 print("\nAll completed trials\n" + "\n".join(HEADER + [line(m, c, st) for (m, c), st in

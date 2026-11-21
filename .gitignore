@@ -18,3 +18,10 @@ logs/
 
 # README figures are tracked
 !docs/*.png
+
+# Generated plots from the golden solution
+results/*.png
+
+# Build and test artefacts
+*.egg-info/
+.pytest_cache/

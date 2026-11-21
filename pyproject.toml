@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asp-benchmark"
+version = "1.0.0"
+description = "Benchmark for LLM agents on causal inference for antimicrobial stewardship programs"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "numpy", "pandas", "scipy", "statsmodels", "lifelines", "linearmodels", "scikit-learn",
+    "matplotlib", "google-genai", "python-dotenv",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::statsmodels.tools.sm_exceptions.ConvergenceWarning"]

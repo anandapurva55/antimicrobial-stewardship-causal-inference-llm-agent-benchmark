@@ -1,5 +1,6 @@
 # Causal Inference Benchmark for LLM Agents on Antimicrobial Stewardship Programs: Survival Analysis with Kaplan-Meier and Cox Proportional Hazards, Staggered Difference-in-Differences with TWFE and Callaway-Sant'Anna, Heterogeneous Treatment Effects with T- and X-Learners on Gradient Boosting, Linear Mixed-Effects Models, a Seeded Synthetic Data Generator with Known Ground Truth, Behavioural Tests, and a Six-Model Gemini Comparison through the google-genai SDK, in Python
 
+[![CI](https://github.com/anandapurva55/antimicrobial-stewardship-causal-inference-llm-agent-benchmark/actions/workflows/ci.yml/badge.svg)](https://github.com/anandapurva55/antimicrobial-stewardship-causal-inference-llm-agent-benchmark/actions/workflows/ci.yml)
 [![Python](docs/images/badges/python.svg)](requirements.txt)
 ![pandas](docs/images/badges/pandas.svg)
 ![NumPy](docs/images/badges/numpy.svg)
@@ -37,7 +38,7 @@ The data are **synthetic**, so the true effects are known and every estimate can
 7. [Agent evaluation protocol](#agent-evaluation-protocol)
 8. [Model comparison](#model-comparison)
 9. [Effect of stating the primary outcome](#effect-of-stating-the-primary-outcome)
-10. [Technology stack](#technology-stack)
+10. [Libraries and tools](#libraries-and-tools)
 11. [Repository layout](#repository-layout)
 12. [Reproducing the results](#reproducing-the-results)
 13. [Limitations](#limitations)
@@ -64,16 +65,17 @@ git clone https://github.com/anandapurva55/antimicrobial-stewardship-causal-infe
 cd antimicrobial-stewardship-causal-inference-llm-agent-benchmark
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -e .
 
-.venv/bin/python golden_solution.py                  # writes golden_results.json
-.venv/bin/python asp_tests.py golden_results.json    # prints 14 tests and the score
+.venv/bin/python -m asp_benchmark.golden                              # writes results/golden_results.json
+.venv/bin/python -m asp_benchmark.scoring results/golden_results.json  # prints 14 tests and the score
 ```
 
-To run an LLM agent, copy `.env.example` to `.env`, set `GEMINI_API_KEY`, and run `run_agent.py` (see [Reproducing the results](#reproducing-the-results)).
+To run an LLM agent, copy `.env.example` to `.env`, set `GEMINI_API_KEY`, and run `evaluation/run_agent.py` (see [Reproducing the results](#reproducing-the-results)).
 
 ## Dataset and ground truth
 
-`generate_data.py` creates `asp_study_data.csv` (11,830 patient admissions, 22 columns) and `ground_truth.json` from a fixed random seed (42), so the data can be regenerated exactly.
+`src/asp_benchmark/data_generation.py` creates `data/asp_study_data.csv` (11,830 patient admissions, 22 columns) and `data/ground_truth.json` from a fixed random seed (42), so the data can be regenerated exactly.
 
 | Property | Value |
 |---|---|
@@ -92,7 +94,7 @@ Columns: `patient_id`, `hospital_id`, `hospital_size`, `region`, `ward`, `year`,
 
 ## Methods and algorithms
 
-The golden solution (`golden_solution.py`, also available as `golden_notebook.ipynb`) applies one method to each of the four objectives. All objectives that need an outcome use `antibiotic_duration`.
+The golden solution (`src/asp_benchmark/golden.py`, also available as `notebooks/golden_notebook.ipynb`) applies one method to each of the four objectives. All objectives that need an outcome use `antibiotic_duration`.
 
 ### 1. Survival analysis
 
@@ -146,7 +148,7 @@ The event study shows flat pre-adoption coefficients, which supports the paralle
 
 ## The 14 tests
 
-`asp_tests.py` scores a results file. Each test runs on its own, so one failure does not stop the others, and the score is the number of passed tests. Tests recompute reference values from `asp_study_data.csv` or compare against `ground_truth.json`. They do not accept self-declared flags. Three dataset checks (P1 to P3) are printed but not scored.
+`src/asp_benchmark/scoring.py` scores a results file. Each test runs on its own, so one failure does not stop the others, and the score is the number of passed tests. Tests recompute reference values from `data/asp_study_data.csv` or compare against `data/ground_truth.json`. They do not accept self-declared flags. Three dataset checks (P1 to P3) are printed but not scored.
 
 | ID | What is checked |
 |---|---|
@@ -165,16 +167,16 @@ The event study shows flat pre-adoption coefficients, which supports the paralle
 | S13 | The AIC of the mixed model is lower than the AIC of the model without random effects |
 | S14 | The mixed-model ASP coefficient is within 1 day of the recomputed value and the random-effect variance is within 50% |
 
-S2 checks that the reported standard error is plausible for a hospital-clustered Cox model. The exact value depends on the covariates, so S2 cannot prove that clustering was used. For that reason `summarize_runs.py` also reports, without scoring it, whether the final generated script passes `cluster_col` to the Cox fit.
+S2 checks that the reported standard error is plausible for a hospital-clustered Cox model. The exact value depends on the covariates, so S2 cannot prove that clustering was used. For that reason `evaluation/summarize_runs.py` also reports, without scoring it, whether the final generated script passes `cluster_col` to the Cox fit.
 
 ## Agent evaluation protocol
 
-1. **Prompt.** `asp_common.build_prompt` builds the prompt from the data: the dataset shape, column types, the first five rows and basic counts, the four objectives, the constraints, and the list of 17 required output variables with their meanings.
+1. **Prompt.** `asp_benchmark.common.build_prompt` builds the prompt from the data: the dataset shape, column types, the first five rows and basic counts, the four objectives, the constraints, and the list of 17 required output variables with their meanings.
 2. **Prompt conditions.** In the `original` condition, the mixed-model objective does not name the outcome. In the `pinned` condition, the prompt states that `antibiotic_duration` is the primary outcome for the difference-in-differences, treatment-effect and mixed-model objectives.
 3. **Attempts.** The model writes **Python** code. The code runs in a separate process (`python -I`, 900-second limit). If it raises an error, the error text is sent back and the model writes corrected code. There are at most 5 attempts per trial.
 4. **Model settings.** The model name is fixed, and there is no fallback to another model. The temperature is 0.7, and the random seed equals the trial number. Transient **API** errors are retried up to 5 times with increasing waiting time. These retries are not counted as attempts.
-5. **Scoring.** The required outputs are saved as **JSON** and scored by `asp_tests.py`. A trial has *valid results* when the code ran and defined at least one required output. Trials without valid results score 0 and are included in all mean scores.
-6. **Stored evidence.** For every trial, `runs/<model>/<prompt>/trial_<k>/` contains the prompt, each attempt's code and error output, the model name returned by the API, the results and the per-test scores.
+5. **Scoring.** The required outputs are saved as **JSON** and scored by `asp_benchmark.scoring`. A trial has *valid results* when the code ran and defined at least one required output. Trials without valid results score 0 and are included in all mean scores.
+6. **Stored evidence.** For every trial, `results/runs/<model>/<prompt>/trial_<k>/` contains the prompt, each attempt's code and error output, the model name returned by the API, the results and the per-test scores.
 
 ## Model comparison
 
@@ -231,78 +233,106 @@ The figure below shows the result of each test (rows S1 to S14) in each of the 2
 
 ![gemini-2.5-pro tests passed per trial](docs/test_matrix.png)
 
-## Technology stack
+## Libraries and tools
 
-| Technology | Use in this project |
-|---|---|
-| Python 3.12 | All code |
-| NumPy (`default_rng`) | Seeded data generation, bootstrap resampling, array computation |
-| pandas | Data handling, hospital-year panel construction |
-| SciPy | Normal distribution for bootstrap p-values |
-| lifelines | Kaplan-Meier estimator, Cox proportional hazards with clustered standard errors, Schoenfeld-residual test |
-| linearmodels | Two-way fixed effects with `PanelOLS` and clustered standard errors |
-| statsmodels | Linear mixed model (`MixedLM`, REML and maximum likelihood), ordinary least squares, AIC |
-| scikit-learn | Histogram gradient boosting regressors and classifier for the T- and X-learners |
-| matplotlib | All figures in `docs/` |
-| google-genai | Gemini API client with chat sessions, a fixed model name and a seed |
-| python-dotenv | Loads `GEMINI_API_KEY` from `.env` |
-| `subprocess` | Runs generated code in a separate process with a time limit |
-| JSON | Results exchange between the agent runs and the tests (no pickle files) |
-| Jupyter, jupytext, nbconvert, nbformat, ipykernel | Builds and runs the notebooks from the source scripts |
+The project is written in Python. The table groups the libraries and tools by purpose.
+
+| Purpose | Library or tool | Use in this project |
+|---|---|---|
+| Language | **Python** 3.12 | All code |
+| Numerical computing | **NumPy** (`default_rng`) | Seeded data generation, bootstrap resampling, array computation |
+| | **pandas** | Data handling, hospital-year panel construction |
+| | **SciPy** | Normal distribution for bootstrap p-values |
+| Statistical modelling | **lifelines** | Kaplan-Meier estimator, Cox proportional hazards with clustered standard errors, Schoenfeld-residual test |
+| | **linearmodels** | Two-way fixed effects with `PanelOLS` and clustered standard errors |
+| | **statsmodels** | Linear mixed model (`MixedLM`, REML and maximum likelihood), ordinary least squares, AIC |
+| Machine learning | **scikit-learn** | Histogram gradient boosting regressors and classifier for the T- and X-learners |
+| Visualisation | **matplotlib** | All figures in `docs/` |
+| Language model access | **google-genai** | Gemini API client with chat sessions, a fixed model name and a seed |
+| | **python-dotenv** | Loads `GEMINI_API_KEY` from `.env` |
+| Execution and storage | **subprocess** (Python standard library) | Runs generated code in a separate process with a time limit |
+| | **JSON** (data format) | Exchange of results between the agent runs and the tests (no pickle files) |
+| Notebooks | **Jupyter**, **jupytext**, **nbconvert**, **nbformat**, **ipykernel** | Builds and runs the notebooks from the source scripts |
+| Testing and automation | **pytest** | 12 tests for the data generator, the scoring and the code runner |
+| | **GitHub Actions** | Runs the tests on every push and pull request (`.github/workflows/ci.yml`) |
+| Packaging | **setuptools** with `pyproject.toml` | Makes `src/asp_benchmark` installable with `pip install -e .` |
 
 ## Repository layout
 
 ```
 antimicrobial-stewardship-causal-inference-llm-agent-benchmark/
-├── generate_data.py          # synthetic data generator, writes asp_study_data.csv and ground_truth.json
-├── asp_study_data.csv        # 11,830 admissions x 22 columns
-├── ground_truth.json         # true effects used to check estimates
-├── golden_solution.py        # expert solution, source of golden_notebook.ipynb
-├── golden_notebook.ipynb     # golden solution with stored outputs
-├── asp_tests.py              # the 14 scored tests
-├── unit_test_notebook.ipynb  # runs the tests on a results file, with stored outputs
-├── asp_common.py             # required outputs, prompt builder, JSON read and write
-├── run_agent.py              # Gemini agent runner
-├── agent_notebook.ipynb      # runs one agent trial from a notebook
-├── rescore_runs.py           # re-scores stored trials without calling the API
-├── summarize_runs.py         # writes runs/summary.json and runs/comparison.md
-├── make_figures.py           # writes the figures in docs/
-├── make_badges.py            # writes the badges in docs/images/badges/
-├── build_notebooks.py        # regenerates the three notebooks
-├── runs/                     # stored prompts, code, errors and scores for every trial
-├── docs/                     # figures used in this README
-├── requirements.txt          # pinned dependencies
-├── .env.example              # template for GEMINI_API_KEY
+├── src/asp_benchmark/
+│   ├── data_generation.py       # synthetic data generator, writes data/
+│   ├── golden.py                # expert solution, source of the golden notebook
+│   ├── scoring.py               # the 14 scored tests
+│   ├── agent.py                 # Gemini agent: prompting, isolated code execution, scoring of one trial
+│   ├── common.py                # required outputs, prompt builder, JSON read and write
+│   └── paths.py                 # repository paths
+├── evaluation/
+│   ├── run_agent.py             # command line to run agent trials
+│   ├── rescore_runs.py          # re-scores stored trials without calling the API
+│   └── summarize_runs.py        # writes results/summary.json and results/comparison.md
+├── scripts/
+│   ├── make_figures.py          # writes the figures in docs/
+│   ├── make_badges.py           # writes the badges in docs/images/badges/
+│   └── build_notebooks.py       # regenerates the three notebooks
+├── data/
+│   ├── asp_study_data.csv       # 11,830 admissions x 22 columns
+│   └── ground_truth.json        # true effects used to check estimates
+├── notebooks/
+│   ├── golden_notebook.ipynb    # golden solution with stored outputs
+│   ├── unit_test_notebook.ipynb # scores a results file, with stored outputs
+│   └── agent_notebook.ipynb     # runs one agent trial
+├── results/
+│   ├── golden_results.json      # outputs of the golden solution
+│   ├── summary.json             # statistics for every set of trials
+│   ├── comparison.md            # model comparison table
+│   └── runs/                    # prompts, code, errors and scores for every trial
+├── tests/                       # pytest tests for the generator, the scoring and the code runner
+├── docs/                        # figures and badges used in this README
+├── .github/workflows/ci.yml     # runs the tests on every push and pull request
+├── pyproject.toml               # package definition and pytest settings
+├── requirements.txt             # pinned dependencies
+├── .env.example                 # template for GEMINI_API_KEY
+├── SECURITY.md
 └── LICENSE
 ```
 
 ## Reproducing the results
 
 ```bash
+# Install
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -e .
+
+# Tests
+.venv/bin/pytest
+
 # Data and golden solution
-.venv/bin/python generate_data.py
-.venv/bin/python golden_solution.py
-.venv/bin/python asp_tests.py golden_results.json
+.venv/bin/python -m asp_benchmark.data_generation
+.venv/bin/python -m asp_benchmark.golden
+.venv/bin/python -m asp_benchmark.scoring results/golden_results.json
 
 # Agent trials (requires GEMINI_API_KEY in .env). Finished trials are skipped, so the command can be repeated.
-.venv/bin/python run_agent.py --model gemini-4-argon --condition original --trials 5
-.venv/bin/python run_agent.py --model gemini-2.5-pro --condition pinned --trials 10
+.venv/bin/python evaluation/run_agent.py --model gemini-4-argon --condition original --trials 5
+.venv/bin/python evaluation/run_agent.py --model gemini-2.5-pro --condition pinned --trials 10
 
 # Summaries, figures and notebooks
-.venv/bin/python rescore_runs.py       # optional: re-score stored trials after changing asp_tests.py
-.venv/bin/python summarize_runs.py     # writes runs/summary.json and runs/comparison.md
-.venv/bin/python make_figures.py
-.venv/bin/python build_notebooks.py
+.venv/bin/python evaluation/rescore_runs.py     # optional: re-score stored trials after changing the tests
+.venv/bin/python evaluation/summarize_runs.py   # writes results/summary.json and results/comparison.md
+.venv/bin/python scripts/make_figures.py
+.venv/bin/python scripts/build_notebooks.py
 ```
 
-`run_agent.py` options: `--model` (any Gemini model name available to your key), `--condition` (`original` or `pinned`), `--trials`, `--start` (first trial number), `--temperature` (default 0.7), `--max-attempts` (default 5) and `--exec-timeout` (seconds, default 900).
+`evaluation/run_agent.py` options: `--model` (any Gemini model name available to your key), `--condition` (`original` or `pinned`), `--trials`, `--start` (first trial number), `--temperature` (default 0.7), `--max-attempts` (default 5) and `--exec-timeout` (seconds, default 900).
 
 ## Limitations
 
 * The model comparison uses 5 trials per model. This gives a clear separation between the weakest and strongest models, but not between models whose scores are close.
 * The test suite has a ceiling. Three models reach 14 out of 14 in every trial, so the suite cannot rank them against each other. Harder objectives or a stricter set of tests would be needed to separate them.
 * The data have two adoption cohorts. Effect differences that depend on more cohorts cannot be tested.
-* The Cox standard error test (S2) checks plausibility, not clustering. The code check in `summarize_runs.py` covers that point without scoring it.
+* The Cox standard error test (S2) checks plausibility, not clustering. The code check in `evaluation/summarize_runs.py` covers that point without scoring it.
 * The pinned-outcome experiment was run for `gemini-2.5-pro` only.
 * The four `gemini-4-*` names are model identifiers returned by the API. The API gives no description of how they differ.
 * All data are synthetic. Results on this benchmark do not measure performance on real clinical data, which has missing values, measurement error and unknown confounding.

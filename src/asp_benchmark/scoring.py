@@ -1,16 +1,17 @@
 """Behavioural tests for ASP benchmark results.
 
-    python asp_tests.py golden_results.json            # prints per-test PASS/FAIL and k/N
-    python asp_tests.py runs/.../results.json --json out.json
+    python -m asp_benchmark.scoring results/golden_results.json            # prints per-test PASS/FAIL and k/N
+    python -m asp_benchmark.scoring results/runs/.../results.json --json out.json
 
 Every test runs independently (one failure never hides the others), the score is computed,
-and no test trusts a self-declared flag: reference values are recomputed from asp_study_data.csv
-or compared with the generator's ground truth (ground_truth.json).
+and no test trusts a self-declared flag: reference values are recomputed from data/asp_study_data.csv
+or compared with the generator's ground truth (data/ground_truth.json).
 """
 import json, os, sys, warnings
 import numpy as np, pandas as pd
 warnings.filterwarnings("ignore")
-from asp_common import load_results
+from asp_benchmark.common import load_results
+from asp_benchmark.paths import CSV, GOLDEN_RESULTS, TRUTH
 
 OUTCOME_FORMULA = ("antibiotic_duration ~ asp_active + age + severity_score + comorbidity_score "
                    "+ immune_compromised + C(ward) + C(infection_type)")
@@ -68,7 +69,7 @@ def build_tests(R, df, ref, truth):
     @add("S2", "Cox SE for ASP is plausible for a hospital-clustered model (0.5x to 2x the reference robust SE)")
     def _():
         # The robust SE depends on the covariate set (year / hospital dummies legitimately change it), so this is a
-        # plausibility band, not proof of clustering. Whether cluster_col was used is checked from the code in summarize_runs.py.
+        # plausibility band, not proof of clustering. Whether cluster_col was used is checked from the code in evaluation/summarize_runs.py.
         se = _num(R["cox_se_asp"]); r = ref["cox_se_robust"]
         assert 0.5 * r < se < 2.0 * r, f"SE={se:.4f}; robust reference {r:.4f}, naive reference {ref['cox_se_naive']:.4f}"
 
@@ -150,7 +151,7 @@ def preconditions(df):
     return out
 
 
-def run_tests(results, csv="asp_study_data.csv", truth_path="ground_truth.json"):
+def run_tests(results, csv=CSV, truth_path=TRUTH):
     df = pd.read_csv(csv); truth = json.load(open(truth_path)); ref = _reference(df)
     rows = []
     for tid, desc, fn in build_tests(results, df, ref, truth):
@@ -173,9 +174,9 @@ def report(rows):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    path = args[0] if args else "golden_results.json"
+    path = args[0] if args else GOLDEN_RESULTS
     rows = run_tests(load_results(path))
-    for tid, desc, ok in preconditions(pd.read_csv("asp_study_data.csv")):
+    for tid, desc, ok in preconditions(pd.read_csv(CSV)):
         print(f"{tid:>4} {'ok  ' if ok else 'BAD '} (unscored) {desc}")
     k, n = report(rows)
     if "--json" in args:

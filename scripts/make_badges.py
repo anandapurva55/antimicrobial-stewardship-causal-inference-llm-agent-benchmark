@@ -1,8 +1,13 @@
-"""Write small flat SVG badges to docs/images/badges/ (no external service)."""
+"""Write small flat SVG badges to docs/images/badges/ (no external service).
+
+    python scripts/make_badges.py
+"""
 import os
 from xml.sax.saxutils import escape
 
-OUT = "docs/images/badges"
+from asp_benchmark.paths import DOCS_DIR
+
+OUT = str(DOCS_DIR / "images" / "badges")
 LABEL = "#5a6b8c"  # label half: slate blue (not near black)
 BADGES = {  # name: (label, value, value-half colour); one distinct hue per badge, no red or black
     "python": ("Python", "3.12", "#3776ab"), "pandas": ("pandas", "data handling", "#7a5bd0"),
