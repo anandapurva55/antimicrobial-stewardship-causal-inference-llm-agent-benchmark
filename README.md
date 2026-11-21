@@ -1,4 +1,4 @@
-# Causal Inference Benchmark for LLM Agents on Antimicrobial Stewardship Programs: Survival Analysis with Kaplan-Meier and Cox Proportional Hazards, Staggered Difference-in-Differences with TWFE and Callaway-Sant'Anna, Heterogeneous Treatment Effects with T- and X-Learners on Gradient Boosting, Linear Mixed-Effects Models, a Seeded Synthetic Data Generator with Known Ground Truth, Behavioural Tests, and a Six-Model Gemini Comparison through the google-genai SDK, in Python
+# Causal Inference Benchmark for LLM Agents on Antimicrobial Stewardship Programs: Survival Analysis with Kaplan-Meier and Cox Proportional Hazards, Staggered Difference-in-Differences with TWFE and Callaway-Sant'Anna, Heterogeneous Treatment Effects with T- and X-Learners on Gradient Boosting, Linear Mixed-Effects Models, a Seeded Synthetic Data Generator with Known Ground Truth, Behavioural Tests, and a Six-Model Gemini Comparison through the google-genai SDK, Tested with pytest and GitHub Actions, in Python
 
 [![CI](https://github.com/anandapurva55/antimicrobial-stewardship-causal-inference-llm-agent-benchmark/actions/workflows/ci.yml/badge.svg)](https://github.com/anandapurva55/antimicrobial-stewardship-causal-inference-llm-agent-benchmark/actions/workflows/ci.yml)
 [![Python](docs/images/badges/python.svg)](requirements.txt)
@@ -12,6 +12,8 @@
 ![matplotlib](docs/images/badges/matplotlib.svg)
 ![Gemini API](docs/images/badges/gemini.svg)
 ![Jupyter](docs/images/badges/jupyter.svg)
+![GitHub Actions](docs/images/badges/github-actions.svg)
+![pytest](docs/images/badges/pytest.svg)
 ![Tests](docs/images/badges/tests.svg)
 ![LLMs compared](docs/images/badges/models.svg)
 ![Synthetic data](docs/images/badges/synthetic.svg)
@@ -38,12 +40,13 @@ The data are **synthetic**, so the true effects are known and every estimate can
 7. [Agent evaluation protocol](#agent-evaluation-protocol)
 8. [Model comparison](#model-comparison)
 9. [Effect of stating the primary outcome](#effect-of-stating-the-primary-outcome)
-10. [Libraries and tools](#libraries-and-tools)
-11. [Repository layout](#repository-layout)
-12. [Reproducing the results](#reproducing-the-results)
-13. [Limitations](#limitations)
-14. [Security notes](#security-notes)
-15. [License](#license)
+10. [Testing and continuous integration](#testing-and-continuous-integration)
+11. [Libraries and tools](#libraries-and-tools)
+12. [Repository layout](#repository-layout)
+13. [Reproducing the results](#reproducing-the-results)
+14. [Limitations](#limitations)
+15. [Security notes](#security-notes)
+16. [License](#license)
 
 ## Problem and significance
 
@@ -233,6 +236,20 @@ The figure below shows the result of each test (rows S1 to S14) in each of the 2
 
 ![gemini-2.5-pro tests passed per trial](docs/test_matrix.png)
 
+## Testing and continuous integration
+
+The repository has two separate kinds of tests. The **14 scored tests** in `src/asp_benchmark/scoring.py` evaluate an analysis and are described in [The 14 tests](#the-14-tests). The **pytest tests** in `tests/` check that the benchmark itself works:
+
+| File | What it checks |
+|---|---|
+| `tests/test_data.py` (3 tests) | The generator is deterministic for a fixed seed, the committed dataset matches it, and the design properties hold: 15 hospitals, 6 years, `asp_active` equal to year at or after adoption, and about 29.5% censoring |
+| `tests/test_scoring.py` (4 tests) | The golden solution passes all 14 scored tests, a `length_of_stay` ICC is caught by the ICC test, a TWFE estimate reported as the staggered-adoption estimate is caught, and missing outputs fail without stopping the other tests |
+| `tests/test_agent.py` (5 tests) | Generated code runs in a separate process, errors and timeouts are returned as text, code fences are removed from model replies, and the pinned prompt names the primary outcome while the original prompt does not |
+
+`pytest` runs the 12 tests in about 20 seconds. They need no API key and make no calls to the Gemini API.
+
+**GitHub Actions** runs the same command on every push to `main` and on every pull request (`.github/workflows/ci.yml`). The workflow checks out the code, sets up Python 3.12 with a pip cache, installs `requirements.txt` and the package with `pip install -e .`, and runs `pytest -q`. The CI badge at the top of this README shows the result of the latest run.
+
 ## Libraries and tools
 
 The project is written in Python. The table groups the libraries and tools by purpose.
@@ -254,7 +271,7 @@ The project is written in Python. The table groups the libraries and tools by pu
 | | **JSON** (data format) | Exchange of results between the agent runs and the tests (no pickle files) |
 | Notebooks | **Jupyter**, **jupytext**, **nbconvert**, **nbformat**, **ipykernel** | Builds and runs the notebooks from the source scripts |
 | Testing and automation | **pytest** | 12 tests for the data generator, the scoring and the code runner |
-| | **GitHub Actions** | Runs the tests on every push and pull request (`.github/workflows/ci.yml`) |
+| | **GitHub Actions** | Continuous integration: runs `pytest` on every push to `main` and on every pull request (`.github/workflows/ci.yml`) |
 | Packaging | **setuptools** with `pyproject.toml` | Makes `src/asp_benchmark` installable with `pip install -e .` |
 
 ## Repository layout
@@ -290,7 +307,7 @@ antimicrobial-stewardship-causal-inference-llm-agent-benchmark/
 │   └── runs/                    # prompts, code, errors and scores for every trial
 ├── tests/                       # pytest tests for the generator, the scoring and the code runner
 ├── docs/                        # figures and badges used in this README
-├── .github/workflows/ci.yml     # runs the tests on every push and pull request
+├── .github/workflows/ci.yml     # GitHub Actions: runs pytest on every push and pull request
 ├── pyproject.toml               # package definition and pytest settings
 ├── requirements.txt             # pinned dependencies
 ├── .env.example                 # template for GEMINI_API_KEY

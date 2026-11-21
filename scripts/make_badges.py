@@ -18,6 +18,7 @@ BADGES = {  # name: (label, value, value-half colour); one distinct hue per badg
     "jupyter": ("Jupyter", "notebooks", "#f37726"), "tests": ("tests", "14 behavioural", "#1b9e8a"),
     "synthetic": ("data", "synthetic, known truth", "#c98512"), "license": ("license", "MIT", "#6b7280"),
     "models": ("LLMs compared", "6 Gemini models", "#7b4fd6"),
+    "github-actions": ("GitHub Actions", "pytest on every push", "#2c7be5"), "pytest": ("pytest", "12 tests", "#0a9bb5"),
 }
 
 
