@@ -227,7 +227,7 @@ Per-trial figures for `gemini-2.5-pro` under both prompts:
 
 The difference between the prompts is small compared with the variation between trials. It comes mainly from how many trials produced working code. In both prompts, every valid trial passed the ICC test, so the prompt wording did not change which outcome was used.
 
-The test-by-test pass pattern for these 20 trials:
+The figure below shows the result of each test (rows S1 to S14) in each of the 20 trials (columns; O0 to O9 use the original prompt and P0 to P9 use the pinned prompt). Teal means the test passed and amber means it failed. A column that is entirely amber is a trial that produced no valid results. The amber row S3 is the proportional-hazards p-value dictionary, which most trials did not return in the requested form.
 
 ![gemini-2.5-pro tests passed per trial](docs/test_matrix.png)
 

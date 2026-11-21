@@ -113,7 +113,7 @@ if len(ALL):
     ax.imshow(M, cmap=matplotlib.colors.ListedColormap([AMBER, TEAL]), aspect="auto", vmin=0, vmax=1)
     ax.set_yticks(range(14)); ax.set_yticklabels(ids); ax.set_xticks(range(len(Rs)))
     ax.set_xticklabels([f"{r.cond[0].upper()}{r.trial}" for r in Rs.itertuples()], fontsize=8)
-    ax.set_xlabel("Trial (O = original, P = pinned)"); ax.set_title("Gemini 2.5 Pro: tests passed (green) or failed (red) per trial")
+    ax.set_xlabel("Trial (O = original, P = pinned)"); ax.set_title("Gemini 2.5 Pro: tests passed (teal) or failed (amber) per trial")
     ax.spines[:].set_visible(False); fig.tight_layout(); fig.savefig("docs/test_matrix.png"); plt.close(fig)
 
     # 6c/6d: comparison across models, original prompt only
